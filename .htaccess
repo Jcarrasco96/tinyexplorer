@@ -1,0 +1,20 @@
+# No listar carpetas
+IndexIgnore *
+
+# Activar la reescritura de URLs
+RewriteEngine On
+
+# Establecer el directorio raíz de la aplicación
+RewriteBase /tinyexplorer/
+
+RewriteCond %{REQUEST_URI} !\.(css|js)$ [NC]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)$ index.php/$1 [L]
+
+# Manejar errores 404 personalizados (opcional)
+#ErrorDocument 404 /tinyexplorer/index.php
+
+php_flag zlib.output_compression On
+php_value zlib.output_compression_level 9

@@ -1,0 +1,20 @@
+{
+  "name": "jcarrasco96/tinyexplorer",
+  "description": "TinyExplorer",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "app\\": "app/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Jesus Carrasco",
+      "email": "jcarrasco96@outlook.com"
+    }
+  ],
+  "require": {
+    "firebase/php-jwt": "^6.10",
+    "ext-zip": "*"
+  }
+}
