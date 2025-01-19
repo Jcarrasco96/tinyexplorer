@@ -2,6 +2,7 @@
 
 namespace app\core;
 
+use app\utils\Utils;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
 use ReflectionClass;
@@ -11,6 +12,12 @@ use ReflectionMethod;
 class BaseController
 {
 
+    private Renderer $renderer;
+
+    public function __construct()
+    {
+        $this->renderer = new Renderer();
+    }
 
     /**
      * @throws ReflectionException
@@ -31,12 +38,12 @@ class BaseController
     /**
      * @throws Exception
      */
-    protected function render(string $view, array $params = []): string
+    protected function renderPartial(string $view, array $params = []): string
     {
         extract($params);
 
-        if (isset($params["status_code"])) {
-            http_response_code($params["status_code"]);
+        if (isset($params["statusCode"])) {
+            http_response_code($params["statusCode"]);
         }
 
         ob_start();
@@ -49,7 +56,21 @@ class BaseController
 
         $output = ob_get_clean();
 
-        return $output !== false ? $output : throw new Exception("Error interno en el servidor. Contacte al administrador", 500);
+        return $output !== false ? $output : throw new Exception("Internal error on the server. Contact the administrator.", 500);
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function render(string $view, array $params = []): string
+    {
+        $reflection = new ReflectionClass($this);
+        $controllerName = $reflection->getShortName();
+        $controllerName = strtolower(str_replace('Controller', '', $controllerName));
+
+        $params['controllerName'] = $controllerName;
+
+        return $this->renderer->render($view, $params);
     }
 
     /**
@@ -57,15 +78,20 @@ class BaseController
      */
     protected function asJson(array $params = []): false|string
     {
-        if (isset($params["status_code"])) {
-            http_response_code($params["status_code"]);
+        if (isset($params["statusCode"])) {
+            http_response_code($params["statusCode"]);
         }
 
         header('Content-Type: application/json; charset=utf8');
 
         $jsonResponse = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
 
-        return $jsonResponse !== false ? $jsonResponse : throw new Exception("Error interno en el servidor. Contacte al administrador", 500);
+        if ($jsonResponse === false) {
+            throw new Exception("Internal error on the server. Contact the administrator.", 500);
+        }
+
+        echo $jsonResponse;
+        exit();
     }
 
     private function normalizeAction($methodName): ?string
@@ -92,10 +118,10 @@ class BaseController
         return is_array($data) ? $data : null;
     }
 
-    #[NoReturn] public function redirect(string $url): string
+    #[NoReturn] public static function redirect(string $url, int $code = 302): string
     {
-        header("Location: " . Utils::urlTo($url), true, 302);
-        return '';
+        header("Location: " . Utils::urlTo($url), true, $code);
+        exit();
     }
 
 }

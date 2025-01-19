@@ -5,7 +5,7 @@ IndexIgnore *
 RewriteEngine On
 
 # Establecer el directorio raíz de la aplicación
-RewriteBase /tinyexplorer/
+#RewriteBase /tinyexplorer/
 
 RewriteCond %{REQUEST_URI} !\.(css|js)$ [NC]
 

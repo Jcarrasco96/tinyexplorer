@@ -1,6 +1,8 @@
 <?php
 
-namespace app\core;
+namespace app\helpers;
+
+use app\core\App;
 
 class Alert
 {
@@ -21,7 +23,7 @@ class Alert
 
     public static function run(): string
     {
-        $flashes = Session::alerts();
+        $flashes = App::$session->alerts();
 
         $count = 0;
 

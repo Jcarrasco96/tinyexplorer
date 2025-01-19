@@ -1,6 +1,6 @@
 <?php
 
-namespace app\core;
+namespace app\services;
 
 class Logger
 {
@@ -8,7 +8,7 @@ class Logger
     private string $logFile;
     private int $maxSize;
 
-    public function __construct(string $file = 'error/app.log', int $maxSize = 1024 * 1024)
+    public function __construct(string $file = 'log/app.log', int $maxSize = 1024 * 1024)
     {
         $this->logFile = $file;
         $this->maxSize = $maxSize;

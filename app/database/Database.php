@@ -1,7 +1,8 @@
 <?php
 
-namespace app\core;
+namespace app\database;
 
+use app\core\App;
 use mysqli;
 use mysqli_result;
 
@@ -37,49 +38,49 @@ class Database
         $this->query("SET NAMES " . $charset);
     }
 
-    public function query($resource): mysqli_result|bool
+    public function query(string $query): mysqli_result|bool
     {
-        return mysqli_query($this->connection, $resource);
+        return mysqli_query($this->connection, $query);
     }
 
-    public function uniqueQuery($resource): false|array|null
+    public function uniqueQuery(string $query): false|array|null
     {
-        $result = $this->query($resource);
-        $Return = $result->fetch_array(MYSQLI_ASSOC);
-        $result->close();
-        return $Return;
+        $result = $this->query($query);
+        $array = $result->fetch_array(MYSQLI_ASSOC);
+        $this->freeResult($result);
+        return $array;
     }
 
-    public function countQuery($resource)
+    public function countQuery(string $query)
     {
-        $result = $this->query($resource);
-        list($Return) = $result->fetch_array(MYSQLI_NUM);
-        $result->close();
-        return $Return;
+        $result = $this->query($query);
+        list($array) = $result->fetch_array(MYSQLI_NUM);
+        $this->freeResult($result);
+        return $array;
     }
 
-    public function fetchQuery($resource): array
+    public function fetchQuery(string $query): array
     {
-        $result = $this->query($resource);
+        $result = $this->query($query);
         $return = [];
         while ($data = $result->fetch_array(MYSQLI_ASSOC)) {
             $return[] = $data;
         }
-        $result->close();
+        $this->freeResult($result);
         return $return;
     }
 
-    public function fetchArray($result)
+    public function fetchArray(mysqli_result $result): false|array|null
     {
         return $result->fetch_array(MYSQLI_ASSOC);
     }
 
-    public function fetchNum($result)
+    public function fetchNum(mysqli_result $result): false|array|null
     {
         return $result->fetch_array(MYSQLI_NUM);
     }
 
-    public function numRows($query)
+    public function numRows(mysqli_result $query): int|string
     {
         return $query->num_rows;
     }
@@ -89,14 +90,14 @@ class Database
         return $this->connection->insert_id;
     }
 
-    public function sqlEscape($string, $flag = false): string
+    public function sqlEscape(string $string, $flag = false): string
     {
         return ($flag === false) ? mysqli_real_escape_string($this->connection, $string) : addcslashes(mysqli_real_escape_string($this->connection, $string), '%_');
     }
 
-    public function freeResult($resource)
+    public function freeResult(mysqli_result $resource): void
     {
-        return $resource->close();
+        $resource->close();
     }
 
     public function affectedRows(): int|string
@@ -104,7 +105,7 @@ class Database
         return $this->connection->affected_rows;
     }
 
-    public function fetchFields($table): array
+    public function fetchFields(string $table): array
     {
         return $this->query("SELECT * FROM " . $table . " LIMIT 1;")->fetch_fields();
     }

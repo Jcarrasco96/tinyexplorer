@@ -1,6 +1,24 @@
-body {
-    /*background-color: #f6f9ff;*/
+html, body {
+    height: 100%;
 }
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Wrapper to control layout */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Main content should expand to fill space */
+main {
+    flex: 1;
+}
+
 main > .container {
     padding: 70px 15px 20px;
 }
@@ -13,9 +31,9 @@ main > .container {
 
 .breadcrumb {
     border-radius: 0.25rem;
-    padding: 0.5rem 1rem;
     /*background-color: #e9ecef;*/
     margin-bottom: 0;
+    padding: 6px 1rem;
 }
 
 .btn-to-top {
@@ -69,14 +87,14 @@ main > .container {
     border-radius: 5px;
 }
 
-.card {
+.card-selection {
     border: 1px solid var(--bs-border-color);
     border-radius: 5px;
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
 }
 
-.card:hover {
+.card-selection:hover {
     background-color: var(--bs-secondary-bg);
 }
 
@@ -127,8 +145,16 @@ main > .container {
 [data-bs-theme=light] {
     --bs-link-color-rgb: 113, 44, 249;
     --bs-link-hover-color-rgb: 90, 35, 200;
+
+    .title strong {
+        color: #1c1c11;
+    }
 }
 [data-bs-theme=dark] {
     --bs-link-color-rgb: 113, 44, 249;
     --bs-link-hover-color-rgb: 75, 6, 211;
+
+    .title strong {
+        color: #ebebde;
+    }
 }

@@ -2,6 +2,9 @@
 
 namespace app\core;
 
+use app\models\System;
+use app\services\Logger;
+use app\services\Session;
 use Exception;
 
 class App
@@ -12,12 +15,15 @@ class App
     private array $routes = [];
 
     public static Logger $logger;
+    public static Session $session;
+    public static System $system;
 
     public function __construct($config = [])
     {
         self::$config = array_merge(self::$config, $config);
-
         self::$logger = new Logger();
+        self::$session = new Session();
+        self::$system = new System();
     }
 
     /**
@@ -30,8 +36,7 @@ class App
         $segments = explode('/', $path_info);
 
         if (empty($segments[0])) {
-            header('Location: /' . self::$config['folder_name'] . '/auth/login');
-            exit();
+            BaseController::redirect('auth/login');
         }
 
         $method = strtoupper($_SERVER['REQUEST_METHOD']);
