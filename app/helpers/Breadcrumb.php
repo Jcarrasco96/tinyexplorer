@@ -1,6 +1,9 @@
 <?php
 
-namespace app\core;
+namespace app\helpers;
+
+use app\services\FileSystem;
+use app\utils\Utils;
 
 class Breadcrumb
 {
@@ -27,14 +30,14 @@ class Breadcrumb
                 continue;
             }
 
-            $breadcrumbElements[] = "<li class='breadcrumb-item'><a href='" . Utils::urlTo("site/index?p=" . base64_encode($parent)) . "'>" . Utils::fmEnc(Utils::fmConvertWin($value)) . "</a></li>";
+            $breadcrumbElements[] = "<li class='breadcrumb-item'><a href='" . Utils::urlTo("site/index?p=" . base64_encode($parent)) . "'>" . Utils::enc(FileSystem::convertWin($value)) . "</a></li>";
         }
 
         if ($last) {
-            $breadcrumbElements[] = "<li class='breadcrumb-item active' aria-current='page'>" . Utils::fmEnc(Utils::fmConvertWin($last)) . "</li>";
+            $breadcrumbElements[] = "<li class='breadcrumb-item active' aria-current='page'>" . Utils::enc(FileSystem::convertWin($last)) . "</li>";
         }
 
-        $html = "<nav aria-label='breadcrumb' style='width: 100%;'>";
+        $html = "<nav aria-label='breadcrumb' class='flex-grow-1'>";
         $html .= "<ol class='breadcrumb'>";
         $html .= "<li class='breadcrumb-item'><a href='" . Utils::urlTo('site/index') . "'><i class='bi bi-house' aria-hidden='true'></i></a></li>";
         $html .= implode('', $breadcrumbElements);

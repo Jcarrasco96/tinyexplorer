@@ -20,5 +20,4 @@ return [
         'normal' => 0,
     ],
     'env' => 'dev',
-    'path' => 'F:' . DIRECTORY_SEPARATOR,
 ];

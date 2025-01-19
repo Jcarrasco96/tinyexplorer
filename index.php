@@ -19,15 +19,13 @@ const VIEWS = APP_PATH . 'views' . DIRECTORY_SEPARATOR;
 
 $app = new app\core\App($config);
 
-// auth
+// auth get
 $app->get('/^auth\/login$/', 'login');
-//$app->get('/^auth\/register$/', 'register');
-
+// auth post
 $app->post('/^auth\/login$/', 'login');
-//$app->post('/^auth\/register$/', 'register');
 $app->post('/^auth\/logout$/', 'logout');
 
-// site
+// site get
 $app->get('/^site\/index$/', 'index');
 $app->get('/^site\/index\/.+$/', 'index');
 $app->get('/^site\/image$/', 'image');
@@ -36,9 +34,20 @@ $app->get('/^site\/new-ajax$/', 'newAjax');
 $app->get('/^site\/rename$/', 'rename');
 $app->get('/^site\/download$/', 'download');
 $app->get('/^site\/view$/', 'view');
-
-$app->post('/^site\/upload$/', 'upload');
+$app->get('/^site\/delete$/', 'delete');
+$app->get('/^site\/help$/', 'help');
+$app->get('/^site\/change-theme$/', 'changeTheme');
+$app->get('/^site\/compress$/', 'compress');
+$app->get('/^site\/share$/', 'share');
+// site post
 $app->post('/^site\/new-ajax$/', 'newAjax');
 $app->post('/^site\/rename$/', 'rename');
+
+// api get
+$app->get('/^api\/dd$/', 'directDownload');
+$app->get('/^api\/image$/', 'image');
+// api post
+$app->post('/^api\/upload$/', 'upload');
+$app->post('/^api\/delete$/', 'delete');
 
 $app->run();

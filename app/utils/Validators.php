@@ -1,10 +1,9 @@
 <?php
 
-namespace app\core;
+namespace app\utils;
 
+use app\core\App;
 use app\models\User;
-use DOMDocument;
-use DOMXPath;
 use Exception;
 
 class Validators {

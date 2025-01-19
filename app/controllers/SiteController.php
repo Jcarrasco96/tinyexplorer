@@ -4,11 +4,13 @@ namespace app\controllers;
 
 use app\core\App;
 use app\core\BaseController;
-use app\core\Session;
-use app\core\Utils;
+use app\http\JsonResponse;
+use app\services\FileSystem;
+use app\services\Zip;
+use app\utils\Utils;
 use Exception;
 use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
+use JetBrains\PhpStorm\NoReturn;
 use ZipArchive;
 
 class SiteController extends BaseController
@@ -21,13 +23,13 @@ class SiteController extends BaseController
     {
         session_start();
 
-        if (Session::isGuest()) {
+        if (App::$session->isGuest()) {
             return $this->redirect('auth/login');
         }
 
         $p = $_GET['p'] ?? '';
 
-        $path = App::$config['path'];
+        $path = App::$system->rootPath;
         if ($p != '') {
             $p = base64_decode($p);
             $path .= '/' . $p;
@@ -37,7 +39,7 @@ class SiteController extends BaseController
             return $this->redirect('site/index');
         }
 
-        $parent = Utils::fmGetParentPath($p);
+        $parent = FileSystem::parentPath($p);
 
         $objects = is_readable($path) ? scandir($path) : [];
 
@@ -71,26 +73,11 @@ class SiteController extends BaseController
         }
 
         return $this->render('index', [
-            'p' => Utils::fmCleanPath($p),
+            'p' => FileSystem::cleanPath($p),
             'arrFolders' => $folders,
             'arrFiles' => $files,
             'parent' => $parent,
         ]);
-    }
-
-    public function actionImage(): void
-    {
-        $path = base64_decode($_GET['image']);
-        $type = $_GET['type'] ?? 'image';
-
-        if (file_exists($path)) {
-            header("Content-Type: $type/" . strtolower(pathinfo($path, PATHINFO_EXTENSION)));
-            readfile($path);
-            exit;
-        } else {
-            http_response_code(404);
-            echo "File $path not found.";
-        }
     }
 
     /**
@@ -100,81 +87,18 @@ class SiteController extends BaseController
     {
         session_start();
 
-        if (Session::isGuest()) {
+        if (App::$session->isGuest()) {
             return $this->redirect('auth/login');
         }
 
         $p = $_GET['p'] ?? '';
 
-        if ($this->isPost()) {
-            $response = ['status' => 'error', 'info' => 'Oops! Try again'];
-
-            $fullPathInput = Utils::fmCleanPath($_POST['fullpath']);
-
-            $tmp_name = $_FILES['file']['tmp_name'];
-            $ext = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME) != '' ? strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION)) : '';
-
-            $targetPath = App::$config['path'] . str_replace('/', DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR;
-
-            if (is_writable($targetPath)) {
-                $fullPath = App::$config['path'] . $p . '/' . basename($fullPathInput);
-
-                if ($_POST['dztotalchunkcount']) {
-                    $out = @fopen("$fullPath.part", $_POST['dzchunkindex'] == 0 ? "wb" : "ab");
-                    if ($out) {
-                        $in = @fopen($tmp_name, "rb");
-                        if ($in) {
-                            if (PHP_VERSION_ID < 80009) {
-                                // workaround https://bugs.php.net/bug.php?id=81145
-                                do {
-                                    for (; ;) {
-                                        $buff = fread($in, 4096);
-                                        if ($buff === false || $buff === '') {
-                                            break;
-                                        }
-                                        fwrite($out, $buff);
-                                    }
-                                } while (!feof($in));
-                            } else {
-                                stream_copy_to_stream($in, $out);
-                            }
-                        }
-                        @fclose($in);
-                        @fclose($out);
-                        @unlink($tmp_name);
-
-                        $response = ['status' => 'success', 'info' => "File upload successful"];
-                    } else {
-                        $response = ['status' => 'error', 'info' => "Failed to open output stream"];
-                    }
-
-                    if ($_POST['dzchunkindex'] == $_POST['dztotalchunkcount'] - 1) {
-                        if (file_exists($fullPath)) {
-                            $ext_1 = $ext ? '.' . $ext : '';
-                            $fullPathTarget = App::$config['path'] . $p . '/' . basename($fullPathInput, $ext_1) . '_' . date('ymdHis') . $ext_1;
-                        } else {
-                            $fullPathTarget = $fullPath;
-                        }
-                        rename("$fullPath.part", $fullPathTarget);
-                    }
-
-                } else if (move_uploaded_file($tmp_name, $fullPath)) {
-                    // Be sure that the file has been uploaded
-                    if (file_exists($fullPath)) {
-                        $response = ['status' => 'success', 'info' => "File upload successful"];
-                    } else {
-                        $response = ['status' => 'error', 'info' => 'Couldn\'t upload the requested file.'];
-                    }
-                } else {
-                    $response = ['status' => 'error', 'info' => "Error while uploading files."];
-                }
-            }
-
-            return $this->asJson($response);
+        if ($p != '') {
+            $p = base64_decode($p);
         }
 
         return $this->render('upload', [
-            'p' => Utils::fmCleanPath($p)
+            'p' => FileSystem::cleanPath($p)
         ]);
     }
 
@@ -183,37 +107,24 @@ class SiteController extends BaseController
      */
     public function actionDownload(): void
     {
-        $jwt = $_GET['jwt'] ?? '';
+        session_start();
 
-        $p = $_GET['p'] ?? '';
-        $df = $_GET['df'] ?? '';
-
-        if (!empty($jwt)) {
-            try {
-                $decoded = JWT::decode($jwt, new Key(App::$config['jwtSecretKey'], 'HS256'));
-
-                $p = $decoded->data->p;
-                $df = $decoded->data->f;
-            } catch (Exception $e) {
-                throw new Exception($e->getMessage());
-            }
-        } else {
-            session_start();
-
-            if (Session::isGuest()) {
-                throw new Exception('You are not allowed to access this page');
-            }
+        if (App::$session->isGuest()) {
+            throw new Exception('You are not allowed to access this page');
         }
 
-        $df = Utils::fmCleanPath($df);
+        $p = $_GET['p'] ?? '';
+        $f = $_GET['f'] ?? '';
 
-        $targetPath = App::$config['path'] . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $df;
+        $f = FileSystem::cleanPath($f);
 
-        if ($df != '' && is_file($targetPath)) {
-            Utils::download($targetPath, $df, 1024 * 10, true);
+        $targetPath = App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $f;
+
+        if ($f != '' && is_file($targetPath)) {
+            Utils::download($targetPath, $f, 1024 * 10, true);
             exit;
         } else {
-            Session::notify('g-danger', 'File not found');
+            App::$session->notify('g-danger', 'File not found');
         }
     }
 
@@ -224,57 +135,71 @@ class SiteController extends BaseController
     {
         session_start();
 
-        if (!$this->isAjax()) {
-            return $this->asJson(['status' => 400, 'data' => [], 'error' => 'AJAX REQUIRED']);
-        }
+        $jsonResponse = new JsonResponse('error', 'YOU MUST BE LOGGED IN AND AJAX REQUIRED.');
 
-        if (Session::isGuest()) {
-            return $this->asJson(['status' => 400, 'data' => [], 'error' => 'YOU MUST BE LOGGED IN']);
+        if (!$this->isAjax() || App::$session->isGuest()) {
+            return $this->asJson($jsonResponse->json(400));
         }
 
         $p = $_GET['p'] ?? '';
         $t = $_GET['t'] ?? 'file';
 
+        if ($p != '') {
+            $p = base64_decode($p);
+        }
+
         if ($this->isPost()) {
             $data = $this->getJsonInput() ?? $_POST;
 
-            $data['name'] = str_replace('/', '', Utils::fmCleanPath(strip_tags($data['name'])));
+            $data['name'] = str_replace('/', '', FileSystem::cleanPath(strip_tags($data['name'])));
 
-            $error = $this->getErrors($data);
-
-            if (!empty($error)) {
-                return $this->asJson(['status' => 400, 'error' => $error, 'message' => '']);
+            if (empty($data["name"])) {
+                $jsonResponse->addError('name', 'Name is required.');
             }
 
-            $targetPath = App::$config['path'] . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $data['name'];
+            if (!FileSystem::isValidFilename($data["name"])) {
+                $jsonResponse->addError('name', 'Invalid characters in file or folder name.');
+            }
+
+            if (!empty($jsonResponse->error)) {
+                return $this->asJson($jsonResponse->json(400));
+            }
+
+            $targetPath = App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $data['name'];
 
             if ($t == 'file') {
                 if (file_exists($targetPath)) {
-                    return $this->asJson(['status' => 400, 'error' => ['name' => 'File already exists.'], 'message' => '']);
+                    $jsonResponse->addError('name', 'File already exists.');
+                    return $this->asJson($jsonResponse->json(400));
                 }
 
                 @fopen($targetPath, 'w') or die('Cannot open file:  ' . $data['name']);
 
-                Session::notify('g-success', 'File created successfully');
+                App::$session->notify('g-success', 'File created successfully');
 
-                return $this->asJson(['status' => 200, 'error' => [], 'message' => 'File created successfully']);
+                $jsonResponse->set('success', 'File created successfully.');
+                return $this->asJson($jsonResponse->json());
             } else {
-                if (Utils::mkdir($targetPath, false) === true) {
-                    Session::notify('g-success', 'Folder created successfully');
+                if (FileSystem::mkdir($targetPath, false) === true) {
+                    App::$session->notify('g-success', 'Folder created successfully');
 
-                    return $this->asJson(['status' => 200, 'error' => [], 'message' => 'Folder created successfully.']);
+                    $jsonResponse->set('success', 'Folder created successfully.');
+                    return $this->asJson($jsonResponse->json());
                 }
 
-                if (Utils::mkdir($targetPath, false) === $targetPath) {
-                    return $this->asJson(['status' => 400, 'error' => ['name' => 'Folder already exists.'], 'message' => '']);
+                if (FileSystem::mkdir($targetPath, false) === $targetPath) {
+                    $jsonResponse->addError('name', 'Folder already exists.');
+                    return $this->asJson($jsonResponse->json(400));
                 }
 
-                return $this->asJson(['status' => 400, 'error' => ['name' => 'Folder not created.'], 'message' => '']);
+                $jsonResponse->addError('name', 'Folder not created.');
+                return $this->asJson($jsonResponse->json(400));
             }
         }
 
-        return $this->render('_new', [
-            'action' => Utils::urlTo('site/new-ajax?p=' . $p . '&t=' . $t),
+        return $this->renderPartial('_new', [
+            'action' => Utils::urlTo('site/new-ajax?p=' . base64_encode($p) . '&t=' . $t),
+            'type' => $t,
         ]);
     }
 
@@ -285,89 +210,61 @@ class SiteController extends BaseController
     {
         session_start();
 
-        if (!$this->isAjax()) {
-            return $this->asJson(['status' => 400, 'error' => 'AJAX REQUIRED']);
-        }
+        $jsonResponse = new JsonResponse('error', 'YOU MUST BE LOGGED IN AND AJAX REQUIRED.');
 
-        if (Session::isGuest()) {
-            return $this->asJson(['status' => 400, 'error' => 'YOU MUST BE LOGGED IN']);
+        if (!$this->isAjax() || App::$session->isGuest()) {
+            return $this->asJson($jsonResponse->json(400));
         }
 
         $p = $_GET['p'] ?? '';
         $old = $_GET['f'] ?? '';
 
+        if ($p != '') {
+            $p = base64_decode($p);
+        }
+        if ($old != '') {
+            $old = base64_decode($old);
+        }
+
         if ($this->isPost()) {
             $data = $this->getJsonInput() ?? $_POST;
 
-            $data['oldName'] = str_replace('/', '', Utils::fmCleanPath(strip_tags($data['oldName'])));
-            $data['newName'] = str_replace('/', '', Utils::fmCleanPath(strip_tags($data['newName'])));
+            $old = str_replace('/', '', FileSystem::cleanPath(strip_tags($old)));
+            $data['newName'] = str_replace('/', '', FileSystem::cleanPath(strip_tags($data['newName'])));
 
-            $error = $this->getErrorsRename($data);
-
-            if (!empty($error)) {
-                return $this->asJson([
-                    'status' => 400,
-                    'error' => $error,
-                    'message' => '',
-                ]);
+            if (empty($data["newName"])) {
+                $jsonResponse->addError('newName', 'Name is required.');
+            }
+            if (!FileSystem::isValidFilename($data["newName"])) {
+                $jsonResponse->addError('newName', 'Invalid characters in new file or folder name.');
+            }
+            if ($old == $data["newName"]) {
+                $jsonResponse->addError('newName', 'You cannot specify the same name.');
             }
 
-            $targetOldPath = App::$config['path'] . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $data['oldName'];
-            $targetNewPath = App::$config['path'] . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $data['newName'];
-
-            if (Utils::rename($targetOldPath, $targetNewPath)) {
-                Session::notify('g-success', 'File or folder renamed successfully');
-
-                return $this->asJson(['status' => 200, 'error' => [], 'message' => '']);
+            if (!empty($jsonResponse->error)) {
+                return $this->asJson($jsonResponse->json(400));
             }
 
-            return $this->asJson([
-                'status' => 400,
-                'error' => [],
-                'message' => 'Error while renaming.',
-            ]);
+            $targetOldPath = App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $old;
+            $targetNewPath = App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $data['newName'];
+
+            App::$logger->info("Renaming $p ($old to {$data['newName']})");
+            if (FileSystem::rename($targetOldPath, $targetNewPath)) {
+                App::$session->notify('g-success', 'File or folder renamed successfully');
+
+                $jsonResponse->set('success', 'File or folder renamed successfully.');
+                return $this->asJson($jsonResponse->json());
+            }
+
+            $jsonResponse->addError('newName', 'Error while renaming. The file may already exist.');
+            return $this->asJson($jsonResponse->json(400));
         }
 
-        return $this->render('_rename', [
-            'action' => Utils::urlTo('site/rename?p=' . $p),
+        return $this->renderPartial('_rename', [
+            'action' => Utils::urlTo('site/rename?p=' . base64_encode($p) . '&f=' . base64_encode($old)),
             'oldName' => $old,
         ]);
-    }
-
-    protected function getErrors(array $data): array
-    {
-        $errors = [];
-
-        if (empty($data["name"])) {
-            $errors['name'] = "Name is required";
-        }
-
-        if (!Utils::isValidFilename($data["name"])) {
-            $errors['name'] = "Invalid characters in file or folder name";
-        }
-
-        return $errors;
-    }
-
-    protected function getErrorsRename(array $data): array
-    {
-        $errors = [];
-
-        if (empty($data["oldName"])) {
-            $errors['oldName'] = "Name is required";
-        }
-        if (empty($data["newName"])) {
-            $errors['newName'] = "Name is required";
-        }
-
-        if (!Utils::isValidFilename($data["oldName"])) {
-            $errors['oldName'] = "Invalid characters in old file or folder name";
-        }
-        if (!Utils::isValidFilename($data["newName"])) {
-            $errors['newName'] = "Invalid characters in new file or folder name";
-        }
-
-        return $errors;
     }
 
     /**
@@ -377,7 +274,7 @@ class SiteController extends BaseController
     {
         session_start();
 
-        if (Session::isGuest()) {
+        if (App::$session->isGuest()) {
             throw new Exception('You are not allowed to access this page');
         }
 
@@ -393,24 +290,24 @@ class SiteController extends BaseController
             $file = base64_decode($file);
         }
 
-        $file = Utils::fmCleanPath($file);
+        $file = FileSystem::cleanPath($file);
 
-        $path = App::$config['path'] . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p);
+        $path = App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p);
 
         $targetPath = $path . DIRECTORY_SEPARATOR . $file;
 
         if ($file == '' || !is_file($targetPath)) {
-            Session::notify('g-danger', 'File not found');
+            App::$session->notify('g-danger', 'File not found');
             $this->redirect('site/index');
         }
 
-        $type = $this->typeFile($targetPath);
+        $type = FileSystem::typeFile($targetPath);
 
         $objects = is_readable($path) ? scandir($path) : [];
 
         $files = [];
 
-        $extensionsByType = $this->extensionByType($type);
+        $extensionsByType = FileSystem::extensionByType($type);
 
         if (is_array($objects)) {
             foreach ($objects as $f) {
@@ -461,69 +358,29 @@ class SiteController extends BaseController
         }
 
         return $this->render('view', [
+            'pageTitle' => 'View',
             'p' => $p,
             'file' => $file,
             'type' => $type,
-            'url' => Utils::urlTo('site/image?image=' . base64_encode($targetPath)) . '&type=' . $type,
+            'url' => Utils::urlTo('api/image?image=' . base64_encode($targetPath)) . '&type=' . $type,
             'arrFiles' => $files,
-
             'filenames' => $filenames,
         ]);
-    }
-
-    private function typeFile(string $targetPath): string
-    {
-        $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
-
-        return match ($ext) {
-            'ico', 'gif', 'jpg', 'jpeg', 'jpc', 'jp2', 'jpx', 'xbm', 'wbmp', 'png', 'bmp', 'tif', 'tiff', 'psd', 'svg', 'webp', 'avif' => 'image',
-            'avi', 'webm', 'wmv', 'mp4', 'm4v', 'ogm', 'ogv', 'mov', 'mkv' => 'video',
-            'wav', 'mp3', 'ogg', 'm4a' => 'audio',
-            'txt', 'css', 'ini', 'conf', 'log', 'htaccess', 'passwd', 'ftpquota', 'sql', 'js', 'ts', 'jsx', 'tsx', 'mjs', 'json', 'sh', 'config', 'php', 'php4', 'php5', 'phps', 'phtml', 'htm', 'html', 'shtml', 'xhtml', 'xml', 'xsl', 'm3u', 'm3u8', 'pls', 'cue', 'bash', 'vue', 'eml', 'msg', 'csv', 'bat', 'twig', 'tpl', 'md', 'gitignore', 'less', 'sass', 'scss', 'c', 'cpp', 'cs', 'py', 'go', 'zsh', 'swift', 'map', 'lock', 'dtd', 'asp', 'aspx', 'asx', 'asmx', 'ashx', 'jsp', 'jspx', 'cgi', 'dockerfile', 'ruby', 'yml', 'yaml', 'toml', 'vhost', 'scpt', 'applescript', 'csx', 'cshtml', 'c++', 'coffee', 'cfm', 'rb', 'graphql', 'mustache', 'jinja', 'http', 'handlebars', 'java', 'es', 'es6', 'markdown', 'wiki', 'tmp', 'top', 'bot', 'dat', 'bak', 'htpasswd', 'pl' => 'text',
-            'pdf', 'zip' => 'application',
-            default => 'unknown',
-        };
-    }
-
-    private function extensionByType(string $type): array
-    {
-        return match ($type) {
-            'image' => ['ico', 'gif', 'jpg', 'jpeg', 'jpc', 'jp2', 'jpx', 'xbm', 'wbmp', 'png', 'bmp', 'tif', 'tiff', 'psd', 'svg', 'webp', 'avif'],
-            'video' => ['avi', 'webm', 'wmv', 'mp4', 'm4v', 'ogm', 'ogv', 'mov', 'mkv'],
-            'audio' => ['wav', 'mp3', 'ogg', 'm4a'],
-            'text' => ['txt', 'css', 'ini', 'conf', 'log', 'htaccess', 'passwd', 'ftpquota', 'sql', 'js', 'ts', 'jsx', 'tsx', 'mjs', 'json', 'sh', 'config', 'php', 'php4', 'php5', 'phps', 'phtml', 'htm', 'html', 'shtml', 'xhtml', 'xml', 'xsl', 'm3u', 'm3u8', 'pls', 'cue', 'bash', 'vue', 'eml', 'msg', 'csv', 'bat', 'twig', 'tpl', 'md', 'gitignore', 'less', 'sass', 'scss', 'c', 'cpp', 'cs', 'py', 'go', 'zsh', 'swift', 'map', 'lock', 'dtd', 'asp', 'aspx', 'asx', 'asmx', 'ashx', 'jsp', 'jspx', 'cgi', 'dockerfile', 'ruby', 'yml', 'yaml', 'toml', 'vhost', 'scpt', 'applescript', 'csx', 'cshtml', 'c++', 'coffee', 'cfm', 'rb', 'graphql', 'mustache', 'jinja', 'http', 'handlebars', 'java', 'es', 'es6', 'markdown', 'wiki', 'tmp', 'top', 'bot', 'dat', 'bak', 'htpasswd', 'pl'],
-            'application' => ['pdf', 'zip'],
-            default => [],
-        };
     }
 
     public function getArrFile(string $new_path, mixed $p, mixed $f): array
     {
         $fs = filesize($new_path);
 
-        $payload = [
-            'iss' => 'jcarrasco96.com',
-            'aud' => 'nas.jcarrasco96.org',
-            'iat' => time(),
-            'exp' => time() + 3600,
-            'data' => [
-                'p' => addslashes($p),
-                'f' => addslashes($f),
-            ],
-        ];
-
-        $jwt = JWT::encode($payload, App::$config['jwtSecretKey'], 'HS256');
-
         return [
             'is_link' => is_link($new_path),
-            'bi_icon' => is_link($new_path) ? 'bi bi-folder-symlink' : Utils::fmGetFileIconClass($new_path),
+            'bi_icon' => is_link($new_path) ? 'bi bi-folder-symlink' : FileSystem::fileIconClass($new_path),
             'modification_date' => date('m/d/Y h:i A', filemtime($new_path)),
             'filesize_raw' => $fs,
-            'filesize' => Utils::fmGetFilesize($fs),
+            'filesize' => FileSystem::filesize($fs),
             'link' => base64_encode($p) . '&amp;view=' . base64_encode($f),
             'f' => $f,
-            'encFile' => Utils::fmEnc($f),
-            'directLink' => $jwt,
+            'encFile' => Utils::enc($f),
         ];
     }
 
@@ -535,8 +392,141 @@ class SiteController extends BaseController
             'modification_date' => date('m/d/Y h:i A', filemtime($new_path)),
             'link' => base64_encode(trim($p . '/' . $f, '/')),
             'f' => $f,
-            'encFile' => Utils::fmEnc($f)
+            'encFile' => Utils::enc($f)
         ];
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function actionDelete(): string
+    {
+        session_start();
+
+        if (App::$session->isGuest()) {
+            throw new Exception('You are not allowed to access this page');
+        }
+
+        $p = $_GET['p'] ?? '';
+        $f = $_GET['f'] ?? '';
+        $t = $_GET['t'] ?? 'file';
+        $cardId = $_GET['cardId'] ?? '';
+
+        if ($p != '') {
+            $p = base64_decode($p);
+        }
+        if ($f != '') {
+            $f = base64_decode($f);
+        }
+
+        $f = FileSystem::cleanPath($f);
+
+        return $this->renderPartial('_delete', [
+            'action' => Utils::urlTo('api/delete'),
+            'p' => $p,
+            'f' => $f,
+            'type' => $t,
+            'cardId' => $cardId,
+        ]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function actionHelp(): string
+    {
+        session_start();
+
+        if (App::$session->isGuest()) {
+            return $this->redirect('auth/login');
+        }
+
+        return $this->render('help');
+    }
+
+    #[NoReturn] public function actionChangeTheme(): string
+    {
+        session_start();
+
+        if (App::$session->isGuest()) {
+            $this->redirect('auth/login');
+        }
+
+        App::$system->updateConfig('theme', App::$system->isLightTheme() ? 'dark' : 'light');
+
+        $this->redirect('site/index');
+    }
+
+    #[NoReturn] public function actionCompress(): void
+    {
+        session_start();
+
+        if (App::$session->isGuest()) {
+            $this->redirect('auth/login');
+        }
+
+        $p = $_GET['p'] ?? '';
+        $f = $_GET['f'] ?? '';
+
+        if ($p != '') {
+            $p = base64_decode($p);
+        }
+        if ($f != '') {
+            $f = base64_decode($f);
+        }
+
+        $zipName = basename($f) . '_' . date('ymd_His') . '.zip';
+
+        $targetPath = App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $f;
+
+        $zipFile = new Zip(App::$system->rootPath . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p) . DIRECTORY_SEPARATOR . $zipName);
+
+        if ($zipFile->open()) {
+            $zipFile->addFolder($targetPath);
+            $zipFile->close();
+        }
+
+        $this->redirect('site/index?p=' . base64_encode($p));
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function actionShare(): string
+    {
+        session_start();
+
+        if (App::$session->isGuest()) {
+            $this->redirect('auth/login');
+        }
+
+        $p = $_GET['p'] ?? '';
+        $f = $_GET['f'] ?? '';
+
+        if ($p != '') {
+            $p = base64_decode($p);
+        }
+        if ($f != '') {
+            $f = base64_decode($f);
+        }
+
+        $payload = [
+            'iss' => 'jcarrasco96.com',
+            'aud' => 'nas.jcarrasco96.org',
+            'iat' => time(),
+            'exp' => time() + 3600,
+            'data' => [
+                'p' => $p,
+                'f' => $f,
+            ],
+        ];
+
+        $jwt = JWT::encode($payload, App::$config['jwtSecretKey'], 'HS256');
+
+        return $this->renderPartial('_share', [
+            'jwt' => $jwt,
+        ]);
+
     }
 
 }

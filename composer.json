@@ -10,11 +10,13 @@
   "authors": [
     {
       "name": "Jesus Carrasco",
-      "email": "jcarrasco96@outlook.com"
+      "email": "mail@jcarrasco96.com"
     }
   ],
   "require": {
     "firebase/php-jwt": "^6.10",
-    "ext-zip": "*"
+    "ext-zip": "*",
+    "ext-mysqli": "*",
+    "ext-mbstring": "*"
   }
 }

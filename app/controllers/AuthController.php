@@ -2,8 +2,8 @@
 
 namespace app\controllers;
 
+use app\core\App;
 use app\core\BaseController;
-use app\core\Session;
 use app\models\User;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
@@ -18,7 +18,7 @@ class AuthController extends BaseController
     {
         session_start();
 
-        if (Session::isLoggedIn()) {
+        if (App::$session->isLoggedIn()) {
             return $this->redirect('site/index');
         }
 
@@ -26,6 +26,18 @@ class AuthController extends BaseController
 
         if ($this->isPost()) {
             $data = $this->getJsonInput() ?? $_POST;
+
+            $csrfToken = $data['_csrf_token'] ?? '';
+
+            if (!App::$session->checkCSRF($csrfToken)) {
+                http_response_code(403);
+                return $this->render('login', [
+                    'error' => ['password' => 'Invalid CSRF token.'],
+                    'data' => [
+                        'email' => $data['email'],
+                    ],
+                ]);
+            }
 
             if (empty($data["email"])) {
                 $error['email'] = "Email is required";
@@ -47,12 +59,11 @@ class AuthController extends BaseController
             $id = User::findUserByCredentials($data['email'], $data['password']);
 
             if (!empty($id)) {
-                Session::create($id, $data["email"]);
-
+                App::$session->create($id, $data["email"]);
                 return $this->redirect('site/index');
-            } else {
-                $error['password'] = "Email or password is incorrect";
             }
+
+            $error['password'] = "Email or password is incorrect";
 
             return $this->render('login', [
                 'error' => $error,
@@ -62,7 +73,12 @@ class AuthController extends BaseController
             ]);
         }
 
-        return $this->render('login', ['error' => $error, 'data' => []]);
+        App::$session->generateCSRF(true);
+
+        return $this->render('login', [
+            'error' => $error,
+            'data' => [],
+        ]);
     }
 
     /**
@@ -72,7 +88,7 @@ class AuthController extends BaseController
     {
         session_start();
 
-        if (Session::isLoggedIn()) {
+        if (App::$session->isLoggedIn()) {
             return $this->redirect('site/index');
         }
 
@@ -109,7 +125,7 @@ class AuthController extends BaseController
             $id = User::register($data['email'], $data['password']);
 
             if (!empty($id)) {
-                Session::create($id, $data["email"]);
+                App::$session->create($id, $data["email"]);
 
                 return $this->redirect('site/index');
             } else {
@@ -130,9 +146,7 @@ class AuthController extends BaseController
     #[NoReturn] public function actionLogout(): string
     {
         session_start();
-
-        Session::destroy();
-
+        App::$session->destroy();
         return $this->redirect('auth/login');
     }
 
