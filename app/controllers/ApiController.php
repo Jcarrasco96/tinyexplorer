@@ -23,7 +23,7 @@ class ApiController extends BaseController
         $type = $_GET['type'] ?? 'image';
 
         if (!file_exists($path)) {
-            throw new Exception("File $path not found.");
+            throw new Exception(App::t('File {path} not found.', [$path]));
         }
 
         header("Content-Type: $type/" . strtolower(pathinfo($path, PATHINFO_EXTENSION)));
@@ -39,7 +39,7 @@ class ApiController extends BaseController
         $jwt = $_GET['t'] ?? '';
 
         if (empty($jwt)) {
-            throw new Exception('You are not allowed to access this page');
+            throw new Exception(App::t('You are not allowed to access this page.'));
         }
 
         try {
@@ -57,7 +57,7 @@ class ApiController extends BaseController
             throw new Exception($e->getMessage());
         }
 
-        throw new Exception("File $f not found.");
+        throw new Exception(App::t('File {path} not found.', [$f]));
     }
 
     /**
@@ -71,13 +71,9 @@ class ApiController extends BaseController
             return $this->redirect('auth/login');
         }
 
-        $p = $_GET['p'] ?? '';
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
 
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-
-        $response = new JsonResponse('error', 'Error while uploading files.');
+        $response = new JsonResponse('error', App::t('Error while uploading files.'));
 
         $tmp_name = $_FILES['file']['tmp_name'];
         $ext = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME) != '' ? strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION)) : '';
@@ -110,9 +106,9 @@ class ApiController extends BaseController
                     @fclose($out);
                     @unlink($tmp_name);
 
-                    $response->set('success', 'File by chunk upload successful.');
+                    $response->set('success', App::t('File by chunk upload successful.'));
                 } else {
-                    $response->set('error', 'Failed to open output stream.');
+                    $response->set('error', App::t('Failed to open output stream.'));
                 }
 
                 if ($_POST['dzchunkindex'] == $_POST['dztotalchunkcount'] - 1) {
@@ -129,9 +125,9 @@ class ApiController extends BaseController
             } else if (move_uploaded_file($tmp_name, $fullPath)) {
                 // Be sure that the file has been uploaded
                 if (file_exists($fullPath)) {
-                    $response->set('success', 'File upload successful.');
+                    $response->set('success', App::t('File upload successful.'));
                 } else {
-                    $response->set('error', "Couldn't upload the requested file.");
+                    $response->set('error', App::t("Couldn't upload the requested file."));
                 }
             }
         }
@@ -146,7 +142,7 @@ class ApiController extends BaseController
     {
         session_start();
 
-        $jsonResponse = new JsonResponse('error', 'YOU MUST BE LOGGED IN AND AJAX REQUIRED.');
+        $jsonResponse = new JsonResponse('error', App::t('YOU MUST BE LOGGED IN AND AJAX REQUIRED.'));
 
         if (!$this->isAjax() || App::$session->isGuest()) {
             return $this->asJson($jsonResponse->json(400));
@@ -154,16 +150,10 @@ class ApiController extends BaseController
 
         $data = $this->getJsonInput() ?? $_POST;
 
-        $p = $data['p'] ?? '';
-        $f = $data['f'] ?? '';
-        $cardId = $data['cardId'] ?? '';
+        $p = isset($data['p']) ? base64_decode($data['p']) : '';
+        $f = isset($data['f']) ? base64_decode($data['f']) : '';
 
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-        if ($f != '') {
-            $f = base64_decode($f);
-        }
+        $cardId = $data['cardId'] ?? '';
 
         $f = FileSystem::cleanPath($f);
 
@@ -174,12 +164,12 @@ class ApiController extends BaseController
 
             if (FileSystem::realDelete($targetPath)) {
                 $jsonResponse->data['cardId'] = $cardId;
-                $jsonResponse->set('success', $isDir ? "Folder deleted successfully." : "File deleted successfully.");
+                $jsonResponse->set('success', $isDir ? App::t('Folder deleted successfully.') : App::t('File deleted successfully.'));
             } else {
-                $jsonResponse->set('error', $isDir ? "Deleting folder failed." : "Deleting file failed.");
+                $jsonResponse->set('error', $isDir ? App::t('Deleting folder failed.') : App::t('Deleting file failed.'));
             }
         } else {
-            $jsonResponse->set('error', 'File not found.');
+            $jsonResponse->set('error', App::t('File {path} not found.', [$f]));
         }
 
         return $this->asJson($jsonResponse->json(400));

@@ -2,6 +2,7 @@
 
 namespace app\services;
 
+use app\core\App;
 use app\utils\Utils;
 use Exception;
 use Random\RandomException;
@@ -16,7 +17,7 @@ class Security
     public static function generateRandomString(int $length = 32): string
     {
         if ($length < 1) {
-            throw new Exception('First parameter ($length) must be greater than 0');
+            throw new Exception(App::t('First parameter ($length) must be greater than 0'));
         }
 
         return substr(Utils::base64UrlEncode(self::generateRandomKey($length)), 0, $length);
@@ -29,7 +30,7 @@ class Security
     public static function generateRandomKey(int $length = 32): string
     {
         if ($length < 1) {
-            throw new Exception('First parameter ($length) must be greater than 0');
+            throw new Exception(App::t('First parameter ($length) must be greater than 0'));
         }
 
         return random_bytes($length);
@@ -48,7 +49,7 @@ class Security
         $hash = crypt($password, $salt);
         // strlen() is safe since crypt() returns only ascii
         if (strlen($hash) !== 60) {
-            throw new Exception('Unknown error occurred while generating hash.');
+            throw new Exception(App::t('Unknown error occurred while generating hash.'));
         }
 
         return $hash;
@@ -60,7 +61,7 @@ class Security
     public static function validatePassword(int $password, string $hash): bool
     {
         if (!preg_match('/^\$2[axy]\$(\d\d)\$[\.\/0-9A-Za-z]{22}/', $hash, $matches) || $matches[1] < 4 || $matches[1] > 30) {
-            throw new Exception('Hash is invalid.');
+            throw new Exception(App::t('Hash is invalid.'));
         }
 
         if (function_exists('password_verify')) {
@@ -83,7 +84,7 @@ class Security
     protected static function generateSalt(int $cost = 13): string
     {
         if ($cost < 4 || $cost > 31) {
-            throw new Exception('Cost must be between 4 and 31.');
+            throw new Exception(App::t('Cost must be between 4 and 31.'));
         }
 
         // Get a 20-byte random string

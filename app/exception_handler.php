@@ -5,7 +5,7 @@ use JetBrains\PhpStorm\NoReturn;
 ignore_user_abort(true);
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-ini_set('error_log', 'error/error_' . date('Ymd') . '.log');
+ini_set('error_log', 'log/error_' . date('Ymd') . '.log');
 
 #[NoReturn] function exception_handler($exception): void
 {

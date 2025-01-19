@@ -66,11 +66,14 @@ class Session
 
     public function _csrf(): string
     {
-        return $_SESSION['_csrf_token'];
+        return $_SESSION['_csrf_token'] ?? '';
     }
 
     public function checkCSRF(string $_csrf): bool
     {
+        if (empty($_SESSION['_csrf_token'])) {
+            return false;
+        }
         return hash_equals($_SESSION['_csrf_token'], $_csrf);
     }
 

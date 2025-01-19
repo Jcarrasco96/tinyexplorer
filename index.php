@@ -16,6 +16,7 @@ defined('SELF_URL') || define('SELF_URL', ($is_https ? 'https' : 'http') . '://'
 define('ROOT', getcwd() . DIRECTORY_SEPARATOR);
 const APP_PATH = ROOT . 'app' . DIRECTORY_SEPARATOR;
 const VIEWS = APP_PATH . 'views' . DIRECTORY_SEPARATOR;
+const LANGUAGES = APP_PATH . 'services' . DIRECTORY_SEPARATOR . 'lng' . DIRECTORY_SEPARATOR;
 
 $app = new app\core\App($config);
 
@@ -35,13 +36,15 @@ $app->get('/^site\/rename$/', 'rename');
 $app->get('/^site\/download$/', 'download');
 $app->get('/^site\/view$/', 'view');
 $app->get('/^site\/delete$/', 'delete');
-$app->get('/^site\/help$/', 'help');
+//$app->get('/^site\/help$/', 'help');
 $app->get('/^site\/change-theme$/', 'changeTheme');
 $app->get('/^site\/compress$/', 'compress');
 $app->get('/^site\/share$/', 'share');
+$app->get('/^site\/settings$/', 'settings');
 // site post
 $app->post('/^site\/new-ajax$/', 'newAjax');
 $app->post('/^site\/rename$/', 'rename');
+$app->post('/^site\/settings$/', 'settings');
 
 // api get
 $app->get('/^api\/dd$/', 'directDownload');

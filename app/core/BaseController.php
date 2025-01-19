@@ -56,7 +56,7 @@ class BaseController
 
         $output = ob_get_clean();
 
-        return $output !== false ? $output : throw new Exception("Internal error on the server. Contact the administrator.", 500);
+        return $output !== false ? $output : throw new Exception(App::t('Internal error on the server. Contact the administrator.'), 500);
     }
 
     /**
@@ -87,7 +87,7 @@ class BaseController
         $jsonResponse = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
 
         if ($jsonResponse === false) {
-            throw new Exception("Internal error on the server. Contact the administrator.", 500);
+            throw new Exception(App::t('Internal error on the server. Contact the administrator.'), 500);
         }
 
         echo $jsonResponse;

@@ -2,6 +2,7 @@
 
 /** @var string $p */
 
+use app\core\App;
 use app\utils\Utils;
 
 ?>
@@ -13,7 +14,7 @@ use app\utils\Utils;
     </div>
 
     <div class="my-dropzone dropzone">
-        <div class="dz-message text-body-tertiary">Drag your files here or click to upload.</div>
+        <div class="dz-message text-body-tertiary"><?= App::t('Drag your files here or click to upload.') ?></div>
     </div>
 
 </div>

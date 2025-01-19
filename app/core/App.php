@@ -3,6 +3,7 @@
 namespace app\core;
 
 use app\models\System;
+use app\services\Language;
 use app\services\Logger;
 use app\services\Session;
 use Exception;
@@ -17,6 +18,7 @@ class App
     public static Logger $logger;
     public static Session $session;
     public static System $system;
+    public static Language $lng;
 
     public function __construct($config = [])
     {
@@ -24,6 +26,7 @@ class App
         self::$logger = new Logger();
         self::$session = new Session();
         self::$system = new System();
+        self::$lng = new Language(self::$system->language);
     }
 
     /**
@@ -43,7 +46,7 @@ class App
         $routes = $this->routes[$method] ?? null;
 
         if (!$routes) {
-            throw new Exception("Method $method not allowed in $path_info.", 400);
+            throw new Exception(App::t('Method {method} not allowed in {path_info}.', [$method, $path_info]), 400);
         }
 
         foreach ($routes as $regex => $action) {
@@ -54,7 +57,7 @@ class App
             }
         }
 
-        throw new Exception("The requested resource was not found.", 404);
+        throw new Exception(App::t('The requested resource was not found.'), 404);
     }
 
     public function get($regex, $action): void
@@ -75,6 +78,11 @@ class App
     public function delete($regex, $action): void
     {
         $this->routes['DELETE'][$regex] = $action;
+    }
+
+    public static function t(string $key, array $params = []): string
+    {
+        return self::$lng->t($key, $params);
     }
 
 }

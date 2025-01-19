@@ -26,8 +26,8 @@ use app\utils\Utils;
                         <div class="text-center">
                             <h1 class="display-4"><i class="bi bi-folder2-open"></i> Tiny<strong>Explorer</strong></h1>
 
-                            <h5 class="card-title fs-4">Login to your account</h5>
-                            <p class="small">Enter your username and password to login</p>
+                            <h5 class="card-title fs-4"><?= App::t('Login to your account') ?></h5>
+                            <p class="small"><?= App::t('Enter your username and password to login') ?></p>
                         </div>
 
                         <form class="row g-3 needs-validation" method="post" novalidate>
@@ -37,25 +37,25 @@ use app\utils\Utils;
                             <div class="col-12">
                                 <div class="form-floating">
                                     <input type="email" name="email" value="<?= $data['email'] ?? '' ?>" class="form-control <?= isset($error['email']) ? 'is-invalid' : 'is-valid' ?>" id="floatingInput" placeholder="name@example.com" required>
-                                    <label for="floatingInput">Email address</label>
-                                    <div class="invalid-feedback"><?= $error['email'] ?? 'Please enter your email.' ?></div>
+                                    <label for="floatingInput"><?= App::t('Email address') ?></label>
+                                    <div class="invalid-feedback"><?= $error['email'] ?? App::t('Please enter your email.') ?></div>
                                 </div>
                             </div>
 
                             <div class="col-12">
                                 <div class="form-floating mb-0">
                                     <input type="password" name="password" class="form-control <?= isset($error['password']) ? 'is-invalid' : 'is-valid' ?>" id="floatingInput2" placeholder="" required>
-                                    <label for="floatingInput2">Password</label>
-                                    <div class="invalid-feedback"><?= $error['password'] ?? 'Please enter your password.' ?></div>
+                                    <label for="floatingInput2"><?= App::t('Password') ?></label>
+                                    <div class="invalid-feedback"><?= $error['password'] ?? App::t('Please enter your password.') ?></div>
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <button class="btn btn-bd-primary btn-lg w-100" type="submit">Login</button>
+                                <button class="btn btn-bd-primary btn-lg w-100" type="submit"><?= App::t('Login') ?></button>
                             </div>
 
                             <div class="col-12 d-none">
-                                <p class="small mb-0">Don't have account? <a href="<?= Utils::urlTo('auth/register') ?>">Create an account</a></p>
+                                <p class="small mb-0"><?= App::t("Don't have account?") ?> <a href="<?= Utils::urlTo('auth/register') ?>"><?= App::t('Create an account') ?></a></p>
                             </div>
                         </form>
 

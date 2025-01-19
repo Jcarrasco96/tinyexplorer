@@ -6,6 +6,7 @@
 use app\core\App;
 use app\helpers\Alert;
 use app\helpers\Html;
+use app\utils\Utils;
 
 ?>
 
@@ -15,7 +16,7 @@ use app\helpers\Html;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8'); ?> - <?= App::$config['name'] ?></title>
+    <title><?= Utils::enc($pageTitle) ?> - <?= App::$config['name'] ?></title>
     <meta content="" name="description">
     <meta content="" name="keywords">
 
@@ -44,17 +45,17 @@ use app\helpers\Html;
     </main>
 
     <div class="container">
-        <footer class="d-flex flex-wrap justify-content-between align-items-center pt-3 my-3 border-top">
-            <div class="col-md-6 d-flex align-items-center">
-            <span class="mb-3 mb-md-0 text-body-secondary">
-                © 2025 JC IT NETWORK, LLC
-                <br>
-                This software is licensed under the <a href="https://github.com/Jcarrasco96/tinyexplorer/blob/master/LICENSE">AGPL-3.0</a>. Source code is available <a href="https://github.com/Jcarrasco96/tinyexplorer" target="_blank">here</a>.
-            </span>
+        <footer class="d-flex flex-wrap justify-content-between align-items-end pt-3 my-3 border-top">
+            <div class="col-md-8 d-flex align-items-center">
+                <span class="mb-3 mb-md-0 text-body-secondary">
+                    <?= App::$config['name'] ?> v<?= App::$config['version'] ?> © 2025 JC IT NETWORK, LLC
+                    <br>
+                    <?= App::t('This software is licensed under the {link}.', ['<a href="https://github.com/Jcarrasco96/tinyexplorer/blob/master/LICENSE">AGPL-3.0</a>']) ?> <?= App::t('Source code is available {link}.', ['<a href="https://github.com/Jcarrasco96/tinyexplorer" target="_blank">' . App::t('here') . '</a>']) ?>
+                </span>
             </div>
-
             <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
-                <li class="ms-3"><a class="text-body-secondary" href="https://github.com/Jcarrasco96/tinyexplorer/issues"><i class="bi bi-bug"></i> Report issue</a></li>
+                <li class="ms-2"></li>
+                <li class="ms-2"><a class="text-body-secondary" href="https://github.com/Jcarrasco96/tinyexplorer/issues"><i class="bi bi-bug"></i> <?= App::t('Report issue') ?></a></li>
             </ul>
         </footer>
     </div>

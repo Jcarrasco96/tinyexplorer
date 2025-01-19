@@ -63,7 +63,7 @@ class Utils
         $size = filesize($fileLocation);
 
         if ($size == 0) {
-            die('Zero byte file! Aborting download');
+            die(App::t('Zero byte file! Aborting download.'));
         }
 
         if (isset($_SERVER['HTTP_RANGE'])) {
@@ -89,7 +89,7 @@ class Utils
             print(fread($fp, 1024 * $maxSpeed));
             flush();
             ob_flush();
-            sleep(0.5);
+            sleep(1);
         }
         fclose($fp);
 

@@ -91,11 +91,7 @@ class SiteController extends BaseController
             return $this->redirect('auth/login');
         }
 
-        $p = $_GET['p'] ?? '';
-
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
 
         return $this->render('upload', [
             'p' => FileSystem::cleanPath($p)
@@ -110,11 +106,11 @@ class SiteController extends BaseController
         session_start();
 
         if (App::$session->isGuest()) {
-            throw new Exception('You are not allowed to access this page');
+            throw new Exception(App::t('You are not allowed to access this page.'));
         }
 
-        $p = $_GET['p'] ?? '';
-        $f = $_GET['f'] ?? '';
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
+        $f = isset($_GET['f']) ? base64_decode($_GET['f']) : '';
 
         $f = FileSystem::cleanPath($f);
 
@@ -124,7 +120,7 @@ class SiteController extends BaseController
             Utils::download($targetPath, $f, 1024 * 10, true);
             exit;
         } else {
-            App::$session->notify('g-danger', 'File not found');
+            App::$session->notify('g-danger', App::t('File {path} not found.', [$f]));
         }
     }
 
@@ -135,18 +131,15 @@ class SiteController extends BaseController
     {
         session_start();
 
-        $jsonResponse = new JsonResponse('error', 'YOU MUST BE LOGGED IN AND AJAX REQUIRED.');
+        $jsonResponse = new JsonResponse('error', App::t('YOU MUST BE LOGGED IN AND AJAX REQUIRED.'));
 
         if (!$this->isAjax() || App::$session->isGuest()) {
             return $this->asJson($jsonResponse->json(400));
         }
 
-        $p = $_GET['p'] ?? '';
-        $t = $_GET['t'] ?? 'file';
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
 
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
+        $t = $_GET['t'] ?? 'file';
 
         if ($this->isPost()) {
             $data = $this->getJsonInput() ?? $_POST;
@@ -154,11 +147,11 @@ class SiteController extends BaseController
             $data['name'] = str_replace('/', '', FileSystem::cleanPath(strip_tags($data['name'])));
 
             if (empty($data["name"])) {
-                $jsonResponse->addError('name', 'Name is required.');
+                $jsonResponse->addError('name', App::t('Name is required.'));
             }
 
             if (!FileSystem::isValidFilename($data["name"])) {
-                $jsonResponse->addError('name', 'Invalid characters in file or folder name.');
+                $jsonResponse->addError('name', App::t('Invalid characters in file or folder name.'));
             }
 
             if (!empty($jsonResponse->error)) {
@@ -169,30 +162,30 @@ class SiteController extends BaseController
 
             if ($t == 'file') {
                 if (file_exists($targetPath)) {
-                    $jsonResponse->addError('name', 'File already exists.');
+                    $jsonResponse->addError('name', App::t('File already exists.'));
                     return $this->asJson($jsonResponse->json(400));
                 }
 
                 @fopen($targetPath, 'w') or die('Cannot open file:  ' . $data['name']);
 
-                App::$session->notify('g-success', 'File created successfully');
+                App::$session->notify('g-success', App::t('File created successfully.'));
 
-                $jsonResponse->set('success', 'File created successfully.');
+                $jsonResponse->set('success', App::t('File created successfully.'));
                 return $this->asJson($jsonResponse->json());
             } else {
                 if (FileSystem::mkdir($targetPath, false) === true) {
-                    App::$session->notify('g-success', 'Folder created successfully');
+                    App::$session->notify('g-success', App::t('Folder created successfully.'));
 
-                    $jsonResponse->set('success', 'Folder created successfully.');
+                    $jsonResponse->set('success', App::t('Folder created successfully.'));
                     return $this->asJson($jsonResponse->json());
                 }
 
                 if (FileSystem::mkdir($targetPath, false) === $targetPath) {
-                    $jsonResponse->addError('name', 'Folder already exists.');
+                    $jsonResponse->addError('name', App::t('Folder already exists.'));
                     return $this->asJson($jsonResponse->json(400));
                 }
 
-                $jsonResponse->addError('name', 'Folder not created.');
+                $jsonResponse->addError('name', App::t('Folder not created.'));
                 return $this->asJson($jsonResponse->json(400));
             }
         }
@@ -210,21 +203,14 @@ class SiteController extends BaseController
     {
         session_start();
 
-        $jsonResponse = new JsonResponse('error', 'YOU MUST BE LOGGED IN AND AJAX REQUIRED.');
+        $jsonResponse = new JsonResponse('error', App::t('YOU MUST BE LOGGED IN AND AJAX REQUIRED.'));
 
         if (!$this->isAjax() || App::$session->isGuest()) {
             return $this->asJson($jsonResponse->json(400));
         }
 
-        $p = $_GET['p'] ?? '';
-        $old = $_GET['f'] ?? '';
-
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-        if ($old != '') {
-            $old = base64_decode($old);
-        }
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
+        $old = isset($_GET['f']) ? base64_decode($_GET['f']) : '';
 
         if ($this->isPost()) {
             $data = $this->getJsonInput() ?? $_POST;
@@ -233,13 +219,13 @@ class SiteController extends BaseController
             $data['newName'] = str_replace('/', '', FileSystem::cleanPath(strip_tags($data['newName'])));
 
             if (empty($data["newName"])) {
-                $jsonResponse->addError('newName', 'Name is required.');
+                $jsonResponse->addError('newName', App::t('Name is required.'));
             }
             if (!FileSystem::isValidFilename($data["newName"])) {
-                $jsonResponse->addError('newName', 'Invalid characters in new file or folder name.');
+                $jsonResponse->addError('newName', App::t('Invalid characters in new file or folder name.'));
             }
             if ($old == $data["newName"]) {
-                $jsonResponse->addError('newName', 'You cannot specify the same name.');
+                $jsonResponse->addError('newName', App::t('You cannot specify the same name.'));
             }
 
             if (!empty($jsonResponse->error)) {
@@ -251,13 +237,13 @@ class SiteController extends BaseController
 
             App::$logger->info("Renaming $p ($old to {$data['newName']})");
             if (FileSystem::rename($targetOldPath, $targetNewPath)) {
-                App::$session->notify('g-success', 'File or folder renamed successfully');
+                App::$session->notify('g-success', App::t('File or folder renamed successfully.'));
 
-                $jsonResponse->set('success', 'File or folder renamed successfully.');
+                $jsonResponse->set('success', App::t('File or folder renamed successfully.'));
                 return $this->asJson($jsonResponse->json());
             }
 
-            $jsonResponse->addError('newName', 'Error while renaming. The file may already exist.');
+            $jsonResponse->addError('newName', App::t('Error while renaming. The file may already exist.'));
             return $this->asJson($jsonResponse->json(400));
         }
 
@@ -275,20 +261,11 @@ class SiteController extends BaseController
         session_start();
 
         if (App::$session->isGuest()) {
-            throw new Exception('You are not allowed to access this page');
+            throw new Exception(App::t('You are not allowed to access this page.'));
         }
 
-        $p = $_GET['p'] ?? '';
-
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-
-        $file = $_GET['view'] ?? '';
-
-        if ($file != '') {
-            $file = base64_decode($file);
-        }
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
+        $file = isset($_GET['view']) ? base64_decode($_GET['view']) : '';
 
         $file = FileSystem::cleanPath($file);
 
@@ -297,7 +274,7 @@ class SiteController extends BaseController
         $targetPath = $path . DIRECTORY_SEPARATOR . $file;
 
         if ($file == '' || !is_file($targetPath)) {
-            App::$session->notify('g-danger', 'File not found');
+            App::$session->notify('g-danger', App::t('File {path} not found.', [$file]));
             $this->redirect('site/index');
         }
 
@@ -404,20 +381,14 @@ class SiteController extends BaseController
         session_start();
 
         if (App::$session->isGuest()) {
-            throw new Exception('You are not allowed to access this page');
+            throw new Exception(App::t('You are not allowed to access this page.'));
         }
 
-        $p = $_GET['p'] ?? '';
-        $f = $_GET['f'] ?? '';
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
+        $f = isset($_GET['f']) ? base64_decode($_GET['f']) : '';
+
         $t = $_GET['t'] ?? 'file';
         $cardId = $_GET['cardId'] ?? '';
-
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-        if ($f != '') {
-            $f = base64_decode($f);
-        }
 
         $f = FileSystem::cleanPath($f);
 
@@ -444,7 +415,10 @@ class SiteController extends BaseController
         return $this->render('help');
     }
 
-    #[NoReturn] public function actionChangeTheme(): string
+    /**
+     * @throws Exception
+     */
+    public function actionChangeTheme(): string
     {
         session_start();
 
@@ -452,9 +426,12 @@ class SiteController extends BaseController
             $this->redirect('auth/login');
         }
 
-        App::$system->updateConfig('theme', App::$system->isLightTheme() ? 'dark' : 'light');
+        $theme = App::$system->isLightTheme() ? 'dark' : 'light';
 
-        $this->redirect('site/index');
+        App::$system->updateConfig('theme', $theme);
+        App::$logger->info('Theme changed: ' . $theme);
+
+        return $this->asJson(['success' => true]);
     }
 
     #[NoReturn] public function actionCompress(): void
@@ -465,15 +442,8 @@ class SiteController extends BaseController
             $this->redirect('auth/login');
         }
 
-        $p = $_GET['p'] ?? '';
-        $f = $_GET['f'] ?? '';
-
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-        if ($f != '') {
-            $f = base64_decode($f);
-        }
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
+        $f = isset($_GET['f']) ? base64_decode($_GET['f']) : '';
 
         $zipName = basename($f) . '_' . date('ymd_His') . '.zip';
 
@@ -500,15 +470,8 @@ class SiteController extends BaseController
             $this->redirect('auth/login');
         }
 
-        $p = $_GET['p'] ?? '';
-        $f = $_GET['f'] ?? '';
-
-        if ($p != '') {
-            $p = base64_decode($p);
-        }
-        if ($f != '') {
-            $f = base64_decode($f);
-        }
+        $p = isset($_GET['p']) ? base64_decode($_GET['p']) : '';
+        $f = isset($_GET['f']) ? base64_decode($_GET['f']) : '';
 
         $payload = [
             'iss' => 'jcarrasco96.com',
@@ -527,6 +490,47 @@ class SiteController extends BaseController
             'jwt' => $jwt,
         ]);
 
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function actionSettings(): string
+    {
+        session_start();
+
+        if (App::$session->isGuest()) {
+            return $this->redirect('auth/login');
+        }
+
+        if ($this->isPost()) {
+            $data = $this->getJsonInput() ?? $_POST;
+
+            $csrfToken = $data['_csrf_token'] ?? '';
+
+            if (!App::$session->checkCSRF($csrfToken)) {
+                throw new Exception(App::t('Invalid CSRF token.'));
+            }
+
+            if (isset($data['theme']) && in_array($data['theme'], ['dark', 'light'])) {
+                App::$system->updateConfig('theme', $data['theme']);
+                App::$logger->info('Theme changed: ' . $data['theme']);
+            }
+            if (isset($data['rootPath']) && is_dir($data['rootPath']) && is_readable($data['rootPath'])) {
+                App::$system->updateConfig('root_path', FileSystem::cleanPath($data['rootPath']));
+                App::$logger->info('Root path changed: ' . $data['rootPath']);
+            }
+            if (isset($data['language']) && in_array($data['language'], ['en', 'es'])) {
+                App::$system->updateConfig('language', $data['language']);
+                App::$logger->info('Language changed: ' . $data['language']);
+            }
+
+            $this->redirect('site/settings');
+        }
+
+        App::$session->generateCSRF(true);
+
+        return $this->render('settings');
     }
 
 }

@@ -18,7 +18,7 @@ class Renderer
         $layoutPath = VIEWS . 'layouts/' . $this->layout . '.php';
 
         if (!file_exists($viewPath)) {
-            throw new Exception("The view \"$view\" does not exist.");
+            throw new Exception(App::t('The view "{view}" does not exist.', [$viewPath]));
         }
 
         unset($params['controllerName']);

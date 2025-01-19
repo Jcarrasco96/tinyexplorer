@@ -7,6 +7,7 @@ use app\database\Database;
 /**
  * @property string $theme
  * @property string $rootPath
+ * @property string $language
  */
 class System
 {
@@ -14,6 +15,7 @@ class System
     public array $configs = [
         'theme' => 'light',
         'root_path' => 'C:' . DIRECTORY_SEPARATOR,
+        'language' => 'en',
     ];
 
     public function __construct()
@@ -23,7 +25,7 @@ class System
         $this->configs = $db->uniqueQuery("SELECT * FROM `system` WHERE id = 1");
 
         if (empty($this->configs)) {
-            $db->query(sprintf("INSERT INTO `system` (id, theme, root_path) VALUES (%u, '%s', '%s');", 1, "light", "C:" . DIRECTORY_SEPARATOR));
+            $db->query(sprintf("INSERT INTO `system` (id, theme, root_path, language) VALUES (%u, '%s', '%s', '%s');", 1, "light", "C:" . DIRECTORY_SEPARATOR, 'en'));
             $this->configs = $db->uniqueQuery("SELECT * FROM `system` WHERE id = 1");
         }
 
@@ -34,7 +36,7 @@ class System
     {
         $db = new Database();
 
-        if (!in_array($key, ['theme', 'root_path'])) {
+        if (!in_array($key, ['theme', 'root_path', 'language'])) {
             return false;
         }
 

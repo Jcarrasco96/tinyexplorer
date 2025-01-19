@@ -30,21 +30,15 @@ class AuthController extends BaseController
             $csrfToken = $data['_csrf_token'] ?? '';
 
             if (!App::$session->checkCSRF($csrfToken)) {
-                http_response_code(403);
-                return $this->render('login', [
-                    'error' => ['password' => 'Invalid CSRF token.'],
-                    'data' => [
-                        'email' => $data['email'],
-                    ],
-                ]);
+                throw new Exception(App::t('Invalid CSRF token.'));
             }
 
             if (empty($data["email"])) {
-                $error['email'] = "Email is required";
+                $error['email'] = App::t('Email is required.');
             }
 
             if (empty($data["password"])) {
-                $error['password'] = "Password is required";
+                $error['password'] = App::t('Password is required.');
             }
 
             if (!empty($error)) {
@@ -63,7 +57,7 @@ class AuthController extends BaseController
                 return $this->redirect('site/index');
             }
 
-            $error['password'] = "Email or password is incorrect";
+            $error['password'] = App::t('Email or password is incorrect.');
 
             return $this->render('login', [
                 'error' => $error,
@@ -98,19 +92,19 @@ class AuthController extends BaseController
             $data = $this->getJsonInput() ?? $_POST;
 
             if (empty($data["email"])) {
-                $error['email'] = "Email is required";
+                $error['email'] = App::t('Email is required.');
             }
 
             if (empty($data["password"])) {
-                $error['password'] = "Password is required";
+                $error['password'] = App::t('Password is required.');
             }
 
             if (empty($data["re_password"])) {
-                $error['re_password'] = "Retype password is required";
+                $error['re_password'] = App::t('Retype password is required.');
             }
 
             if ($data["password"] !== $data["re_password"]) {
-                $error['re_password'] = "Passwords not match";
+                $error['re_password'] = App::t('Passwords not match.');
             }
 
             if (!empty($error)) {
@@ -129,7 +123,7 @@ class AuthController extends BaseController
 
                 return $this->redirect('site/index');
             } else {
-                $error['password'] = "Email or password is incorrect";
+                $error['password'] = App::t('Email or password is incorrect.');
             }
 
             return $this->render('register', [
