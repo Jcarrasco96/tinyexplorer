@@ -17,6 +17,9 @@
     "firebase/php-jwt": "^6.10",
     "ext-zip": "*",
     "ext-mysqli": "*",
-    "ext-mbstring": "*"
+    "ext-mbstring": "*",
+    "ext-curl": "*",
+    "ext-fileinfo": "*",
+    "ext-openssl": "*"
   }
 }

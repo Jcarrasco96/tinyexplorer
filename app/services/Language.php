@@ -7,29 +7,24 @@ use app\core\App;
 class Language
 {
 
-    public string $lngCode;
-    public mixed $lng = [];
+    private string $code;
+    private mixed $languages;
 
     public function __construct(string $code = 'en')
     {
-        $this->lngCode = $code;
-        $this->lng = require_once LANGUAGES . "$code.php";
+        $this->code = $code;
+        $this->languages = require_once LANGUAGES . "$code.php";
     }
 
-    public function setLanguage(string $code): void
+    public function isCode(string $code): bool
     {
-        if (file_exists(LANGUAGES . "$code.php")) {
-            $this->lngCode = $code;
-            $this->lng = require_once LANGUAGES . "$code.php";
-        } else {
-            App::$logger->error('Language file not found: ' . $code);
-        }
+        return $this->code === $code;
     }
 
     public function t(string $key, array $params = []): string
     {
-        if (isset($this->lng['t'][$key])) {
-            $translation = $this->lng['t'][$key];
+        if (isset($this->languages[$key])) {
+            $translation = $this->languages[$key];
 
             preg_match_all('/\{(.*?)}/', $translation, $matches);
 
@@ -44,7 +39,7 @@ class Language
             return $translation;
         }
 
-        App::$logger->error('Language return key: ' . $key);
+        App::$logger->warning("Language key: '$key' not found.");
         return $key;
     }
 

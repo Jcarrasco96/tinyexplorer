@@ -20,5 +20,5 @@ return [
         'normal' => 0,
     ],
     'env' => 'dev',
-    'version' => '1.2',
+    'version' => '1.3',
 ];

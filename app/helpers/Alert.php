@@ -23,13 +23,11 @@ class Alert
 
     public static function run(): string
     {
-        $flashes = App::$session->alerts();
-
         $count = 0;
 
         $js = "<script>";
 
-        foreach ($flashes as $flash) {
+        foreach (App::$session->alerts() as $flash) {
             if (!array_key_exists($flash['type'], self::$alertTypes)) {
                 continue;
             }

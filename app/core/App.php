@@ -5,6 +5,8 @@ namespace app\core;
 use app\models\System;
 use app\services\Language;
 use app\services\Logger;
+use app\services\Router;
+use app\services\RouterRequestMethod;
 use app\services\Session;
 use Exception;
 
@@ -13,20 +15,26 @@ class App
 
     public static array $config = [];
 
-    private array $routes = [];
-
     public static Logger $logger;
     public static Session $session;
     public static System $system;
-    public static Language $lng;
+    public static Language $language;
+    private Router $router;
 
     public function __construct($config = [])
     {
+        define('ROOT', getcwd() . DIRECTORY_SEPARATOR);
+        define('APP_PATH', ROOT . 'app' . DIRECTORY_SEPARATOR);
+        define('VIEWS', APP_PATH . 'views' . DIRECTORY_SEPARATOR);
+        define('LANGUAGES', APP_PATH . 'languages' . DIRECTORY_SEPARATOR);
+
         self::$config = array_merge(self::$config, $config);
         self::$logger = new Logger();
         self::$session = new Session();
         self::$system = new System();
-        self::$lng = new Language(self::$system->language);
+        self::$language = new Language(self::$system->language);
+
+        $this->router = new Router();
     }
 
     /**
@@ -34,55 +42,32 @@ class App
      */
     public function run(): void
     {
-        $path_info = trim($_SERVER['PATH_INFO'] ?? '', '/');
-
-        $segments = explode('/', $path_info);
-
-        if (empty($segments[0])) {
-            BaseController::redirect('auth/login');
-        }
-
-        $method = strtoupper($_SERVER['REQUEST_METHOD']);
-        $routes = $this->routes[$method] ?? null;
-
-        if (!$routes) {
-            throw new Exception(App::t('Method {method} not allowed in {path_info}.', [$method, $path_info]), 400);
-        }
-
-        foreach ($routes as $regex => $action) {
-            if (preg_match($regex, $path_info)) {
-                $controller_name = 'app\\controllers\\' . ucfirst(array_shift($segments)) . 'Controller';
-                (new $controller_name)->createAction($action, $segments);
-                exit;
-            }
-        }
-
-        throw new Exception(App::t('The requested resource was not found.'), 404);
+        $this->router->run();
     }
 
     public function get($regex, $action): void
     {
-        $this->routes['GET'][$regex] = $action;
+        $this->router->addRoute($regex, $action, RouterRequestMethod::ROUTER_GET);
     }
 
     public function post($regex, $action): void
     {
-        $this->routes['POST'][$regex] = $action;
+        $this->router->addRoute($regex, $action, RouterRequestMethod::ROUTER_POST);
     }
 
     public function put($regex, $action): void
     {
-        $this->routes['PUT'][$regex] = $action;
+        $this->router->addRoute($regex, $action, RouterRequestMethod::ROUTER_PUT);
     }
 
     public function delete($regex, $action): void
     {
-        $this->routes['DELETE'][$regex] = $action;
+        $this->router->addRoute($regex, $action, RouterRequestMethod::ROUTER_DELETE);
     }
 
     public static function t(string $key, array $params = []): string
     {
-        return self::$lng->t($key, $params);
+        return self::$language->t($key, $params);
     }
 
 }

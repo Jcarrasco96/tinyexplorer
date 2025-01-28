@@ -8,14 +8,16 @@ use app\database\Database;
  * @property string $theme
  * @property string $rootPath
  * @property string $language
+ * @property string $use_curl
  */
 class System
 {
 
     public array $configs = [
         'theme' => 'light',
-        'root_path' => 'C:' . DIRECTORY_SEPARATOR,
+        'root_path' => 'C:',
         'language' => 'en',
+        'use_curl' => 'y',
     ];
 
     public function __construct()
@@ -25,7 +27,7 @@ class System
         $this->configs = $db->uniqueQuery("SELECT * FROM `system` WHERE id = 1");
 
         if (empty($this->configs)) {
-            $db->query(sprintf("INSERT INTO `system` (id, theme, root_path, language) VALUES (%u, '%s', '%s', '%s');", 1, "light", "C:" . DIRECTORY_SEPARATOR, 'en'));
+            $db->query(sprintf("INSERT INTO `system` (id, theme, root_path, language, use_curl) VALUES (%u, '%s', '%s', '%s', '%s');", 1, "light", "C:", 'en', 'y'));
             $this->configs = $db->uniqueQuery("SELECT * FROM `system` WHERE id = 1");
         }
 
@@ -36,7 +38,7 @@ class System
     {
         $db = new Database();
 
-        if (!in_array($key, ['theme', 'root_path', 'language'])) {
+        if (!in_array($key, ['theme', 'root_path', 'language', 'use_curl'])) {
             return false;
         }
 
@@ -64,6 +66,11 @@ class System
     public function isLightTheme(): bool
     {
         return $this->configs['theme'] === 'light';
+    }
+
+    public function isCurl(): bool
+    {
+        return $this->configs['use_curl'] === 'y';
     }
 
 }

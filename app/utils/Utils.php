@@ -20,10 +20,12 @@ class Utils
 
     public static function urlTo(string $path): string
     {
+        $isHttps = isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] == 1) || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' || isset($requestHeaders['x-forwarded-proto']) && $requestHeaders['x-forwarded-proto'] === 'https';
+
         if (App::$config['folder_name'] === '') {
-            return $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . $path;
+            return ($isHttps ? 'https' : 'http') . '://' . $_SERVER['SERVER_NAME'] . '/' . $path;
         }
-        return $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/' . $path;
+        return ($isHttps ? 'https' : 'http') . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/' . $path;
     }
 
     public static function enc(string $text): string
@@ -43,13 +45,13 @@ class Utils
 
         if ($doStream) {
             /* extensions to stream */
-            $array_listen = ['mp3', 'm3u', 'm4a', 'mid', 'ogg', 'ra', 'ram', 'wm', 'wav', 'wma', 'aac', '3gp', 'avi', 'mov', 'mp4', 'mpeg', 'mpg', 'swf', 'wmv', 'divx', 'asf'];
+            $array_listen = ['pdf', 'mp3', 'm3u', 'm4a', 'mid', 'ogg', 'ra', 'ram', 'wm', 'wav', 'wma', 'aac', '3gp', 'avi', 'mov', 'mp4', 'mpeg', 'mpg', 'swf', 'wmv', 'divx', 'asf'];
             if (in_array($extension, $array_listen)) {
                 $contentDisposition = 'inline';
             }
         }
 
-        if (str_contains($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
+        if (isset($_SERVER['HTTP_USER_AGENT']) && str_contains($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
             $fileName = preg_replace('/\./', '%2e', $fileName, substr_count($fileName, '.') - 1);
         }
 

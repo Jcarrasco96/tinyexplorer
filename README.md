@@ -28,6 +28,7 @@ I developed this system as a personal project to manage my home cloud, allowing 
 | theme     | varchar(10)  | No   |                |
 | root_path | varchar(255) | No   |                |
 | language  | varchar(5)   | No   |                |
+| use_curl  | varchar(1)   | No   |                |
 
 ### Table USER
 | Name        | Type         | Null | Extra          |

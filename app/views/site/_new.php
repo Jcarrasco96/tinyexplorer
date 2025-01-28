@@ -7,7 +7,8 @@ use app\core\App;
 
 ?>
 
-<form id="form-new" class="g-3" action="<?= $action ?>" method="post">
+<form id="form-new" action="<?= $action ?>" method="post">
+    <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(App::$session->_csrf()) ?>">
 
     <div class="mb-3">
         <label for="inputName" class="form-label"><?= App::t('Name for the new {type}', [App::t($type)]) ?></label>

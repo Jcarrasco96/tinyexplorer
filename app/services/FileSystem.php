@@ -5,6 +5,59 @@ namespace app\services;
 class FileSystem
 {
 
+    public static function diskUsage($path = '/'): array
+    {
+        $total = disk_total_space($path);
+        $free = disk_free_space($path);
+
+        $used = $total - $free;
+
+        return [
+            'total' => self::filesize($total),
+            'free' => self::filesize($free),
+            'used' => self::filesize($used),
+            'percent' => intval($used / $total * 100),
+        ];
+    }
+
+    public static function isNAS($path): bool
+    {
+        $path = rtrim($path, '\\/');
+
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            if (str_starts_with($path, '\\\\')) {
+                return true;
+            }
+
+            $networkDevices = shell_exec('net use');
+            $lines = explode("\n", $networkDevices);
+
+            $path = substr($path, 0, 2);
+
+            foreach ($lines as $linea) {
+                if (str_contains($linea, $path) && str_contains($linea, 'Network')) {
+                    return true;
+                }
+            }
+        } else {
+            $mounts = file('/proc/mounts');
+
+            foreach ($mounts as $mount) {
+                $parts = explode(' ', $mount);
+                if (isset($parts[1]) && isset($parts[2])) {
+                    $mountPoint = rtrim($parts[1], '/');
+                    $fileSystem = $parts[2];
+
+                    if ($mountPoint === $path && in_array($fileSystem, ['cifs', 'nfs', 'smb'])) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     public static function isValidFilename(string $filename): bool|string
     {
         return strpbrk($filename, '/?%*:|"<>') === FALSE;
@@ -90,9 +143,8 @@ class FileSystem
         return $fileTypes[$extension] ?? 'application/octet-stream';
     }
 
-    public static function filesize(int $size): string
+    public static function filesize(float $size): string
     {
-        $size = (float)$size;
         $units = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
         $power = ($size > 0) ? floor(log($size, 1024)) : 0;
         $power = ($power > (count($units) - 1)) ? (count($units) - 1) : $power;
@@ -128,9 +180,52 @@ class FileSystem
         };
     }
 
-    public static function rename(string $old, string $new): bool
+    public static function rename(string $old, string $new): ?bool
     {
         return !file_exists($new) && file_exists($old) && rename($old, $new);
+    }
+
+    public static function recursiveCopy(string $path, string $dest, bool $override = true, bool $force = true): bool
+    {
+        if (is_dir($path)) {
+            if (!self::mkdir($dest, $force)) {
+                return false;
+            }
+            $objects = scandir($path);
+            $ok = true;
+            if (is_array($objects)) {
+                foreach ($objects as $file) {
+                    if ($file != '.' && $file != '..') {
+                        if (!self::recursiveCopy($path . DIRECTORY_SEPARATOR . $file, $dest . DIRECTORY_SEPARATOR . $file)) {
+                            $ok = false;
+                        }
+                    }
+                }
+            }
+            return $ok;
+        } elseif (is_file($path)) {
+            return self::copy($path, $dest, $override);
+        }
+        return false;
+    }
+
+    public static function copy(string $path, string $dest, bool $override = true): bool
+    {
+        $time1 = filemtime($path);
+
+        if (file_exists($dest)) {
+            $time2 = filemtime($dest);
+            if ($time2 >= $time1 && $override) {
+                return false;
+            }
+        }
+
+        if (copy($path, $dest)) {
+            touch($dest, $time1);
+            return true;
+        }
+
+        return false;
     }
 
     public static function getAbsolutePath(array|string $path): string
@@ -139,7 +234,9 @@ class FileSystem
         $parts = array_filter(explode(DIRECTORY_SEPARATOR, $path), 'strlen');
         $absolutes = [];
         foreach ($parts as $part) {
-            if ('.' == $part) continue;
+            if ('.' == $part) {
+                continue;
+            }
             if ('..' == $part) {
                 array_pop($absolutes);
             } else {
@@ -159,10 +256,12 @@ class FileSystem
             $ok = true;
             if (is_array($objects)) {
                 foreach ($objects as $file) {
-                    if ($file != '.' && $file != '..') {
-                        if (!self::realDelete($path . '/' . $file)) {
-                            $ok = false;
-                        }
+                    if ($file == '.' || $file == '..' || $file == 'System Volume Information' || $file == '$RECYCLE.BIN') {
+                        continue;
+                    }
+
+                    if (!self::realDelete($path . DIRECTORY_SEPARATOR . $file)) {
+                        $ok = false;
                     }
                 }
             }

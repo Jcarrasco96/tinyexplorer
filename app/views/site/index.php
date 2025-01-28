@@ -1,6 +1,7 @@
 <?php
 
 use app\core\App;
+use app\core\Renderer;
 use app\helpers\Breadcrumb;
 use app\services\FileSystem;
 use app\utils\Utils;
@@ -10,6 +11,8 @@ use app\utils\Utils;
 /** @var array $arrFolders */
 /** @var array $arrFiles */
 
+/** @var Renderer $renderer */
+
 $time_start = microtime(true);
 
 ?>
@@ -18,51 +21,60 @@ $time_start = microtime(true);
 
     <div class="d-flex align-items-center justify-content-between mb-2">
         <?php if ($parent !== false): ?>
-            <a class="btn btn-bd-primary me-2" href="<?= Utils::urlTo('site/index?p=' .  base64_encode($parent)) ?>"><i class="bi bi-chevron-left"></i></a>
-
+            <a class="btn btn-bd-primary me-2" href="<?= Utils::urlTo('site/index/' .  base64_encode($parent)) ?>"><i class="bi bi-chevron-left"></i></a>
             <?= Breadcrumb::run(['path' => $p]) ?>
         <?php else: ?>
             <a class="btn btn-bd-primary me-2" href="<?= Utils::urlTo('site/index') ?>"><i class="bi bi-house"></i></a>
         <?php endif; ?>
 
         <p class="ms-2 mb-0">
-            <button type="button" class="btn btn-bd-primary" id="btn-new" data-url="<?= Utils::urlTo('site/new-ajax?p=' . base64_encode($p)) ?>" data-type="file"><i class="bi bi-file-plus"></i> <?= App::t('New file') ?></button>
-            <button type="button" class="btn btn-bd-primary" id="btn-new" data-url="<?= Utils::urlTo('site/new-ajax?p=' . base64_encode($p)) ?>" data-type="folder"><i class="bi bi-folder-plus"></i> <?= App::t('New folder') ?></button>
-            <a class="btn btn-bd-primary" href="<?= Utils::urlTo('site/upload?p=' . base64_encode($p)) ?>"><i class="bi bi-upload"></i> <?= App::t('Upload') ?></a>
+            <button type="button" class="btn btn-bd-primary" id="btn-new" data-url="<?= Utils::urlTo('site/new/file') ?>"><i class="bi bi-file-earmark-plus"></i> <?= App::t('New file') ?></button>
+            <button type="button" class="btn btn-bd-primary" id="btn-new" data-url="<?= Utils::urlTo('site/new/folder') ?>"><i class="bi bi-folder-plus"></i> <?= App::t('New folder') ?></button>
+
+            <?php if (App::$session->getPermission('cUpload')): ?>
+                <a class="btn btn-bd-primary" href="<?= Utils::urlTo('site/upload-link') ?>"><i class="bi bi-upload"></i> <?= App::t('Upload') ?></a>
+            <?php endif; ?>
         </p>
     </div>
 
     <div class="row row-cols-1 g-1">
-        <?php foreach ($arrFolders as $kFolder => $vFolder): ?>
-            <div class="card card-selection" data-card-id="card-folder-<?= $kFolder ?>" data-url="<?= Utils::urlTo('site/index?p=' . $vFolder['link']) ?>">
-                <div class="row card-body px-3 py-2 align-items-center">
-                    <div class="col-auto" style="width: calc(100% - 450px);"><h5 class="text-nowrap mb-0 py-1 text-truncate"><i class="<?= $vFolder['bi_icon'] ?>"></i> <?= FileSystem::convertWin($vFolder['encFile']) ?></h5></div>
-                    <div class="d-nones d-lg-table-cells" style="width: 180px;"><?= $vFolder['modification_date'] ?></div>
-                    <div style="width: 100px;"><small class="text-body-secondary me-auto"><?= App::t('Folder') ?></small></div>
-                    <div class="text-end" style="width: 170px;">
-                        <p class="mb-0">
-                            <button class="btn btn-bd-primary btn-sm" id="btn-compress-zip" title="<?= App::t('Compress to ZIP') ?>" data-url="<?= Utils::urlTo('site/compress?p=' . base64_encode($p) . '&f=' . base64_encode($vFolder['f'])) ?>"><i class="bi bi-file-earmark-zip" aria-hidden="true"></i></button>
-                            <button class="btn btn-bd-primary btn-sm" id="btn-rename" title="<?= App::t('Rename') ?>" data-url="<?= Utils::urlTo('site/rename?p=' . base64_encode($p) . '&f=' . base64_encode($vFolder['f'])) ?>" data-type="folder"><i class="bi bi-input-cursor-text" aria-hidden="true"></i></button>
-                            <button class="btn btn-danger btn-sm" id="btn-delete" title="<?= App::t('Delete') ?>" data-card-id="card-folder-<?= $kFolder ?>" data-url="<?= Utils::urlTo('site/delete?p=' . base64_encode($p) . '&f=' . base64_encode($vFolder['f'])) ?>" data-type="folder"><i class="bi bi-trash" aria-hidden="true"></i></button>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
+        <?= $renderer->renderPartial('_list_folders', [
+            'controllerName' => 'site',
+            'p' => $p,
+            'arrFolders' => $arrFolders,
+            'isCopy' => false,
+        ]) ?>
 
         <?php foreach ($arrFiles as $kFile => $vFile): ?>
-            <div class="card card-selection" data-card-id="card-file-<?= $kFile ?>" data-url="<?= Utils::urlTo('site/view?p=' . $vFile['link']) ?>">
-                <div class="row card-body px-3 py-2 align-items-center">
-                    <div class="col-auto" style="width: calc(100% - 450px);"><h5 class="text-nowrap mb-0 py-1 text-truncate"><i class="<?= $vFile['bi_icon'] ?>"></i> <?= FileSystem::convertWin($vFile['encFile']) ?></h5></div>
-                    <div class="d-nones d-lg-table-cells" style="width: 180px;"><?= $vFile['modification_date'] ?></div>
-                    <div style="width: 100px;"><small class="text-body-secondary me-auto"><?= $vFile['filesize'] ?></small></div>
-                    <div class="text-end" style="width: 170px;">
-                        <p class="mb-0">
-                            <button class="btn btn-bd-primary btn-sm" id="btn-share" title="<?= App::t('Share') ?>" data-url="<?= Utils::urlTo('site/share?p=' . base64_encode($p) . '&f=' . base64_encode($vFile['f'])) ?>"><i class="bi bi-share" aria-hidden="true"></i></button>
-                            <button class="btn btn-bd-primary btn-sm" id="btn-download" title="<?= App::t('Download') ?>" data-url="<?= Utils::urlTo('site/download?p=' . base64_encode($p) . '&f=' . base64_encode($vFile['f'])) ?>"><i class="bi bi-download" aria-hidden="true"></i></button>
-                            <button class="btn btn-bd-primary btn-sm" id="btn-rename" title="<?= App::t('Rename') ?>" data-url="<?= Utils::urlTo('site/rename?p=' . base64_encode($p) . '&f=' . base64_encode($vFile['f'])) ?>" data-type="file"><i class="bi bi-input-cursor-text" aria-hidden="true"></i></button>
-                            <button class="btn btn-danger btn-sm" id="btn-delete" title="<?= App::t('Delete') ?>" data-card-id="card-file-<?= $kFile ?>" data-url="<?= Utils::urlTo('site/delete?p=' . base64_encode($p) . '&f=' . base64_encode($vFile['f'])) ?>" data-type="file"><i class="bi bi-trash" aria-hidden="true"></i></button>
-                        </p>
+            <div class="col" data-card-id="card-file-<?= $kFile ?>">
+                <div class="card card-selection" data-url="<?= Utils::urlTo('site/view/' . base64_encode($vFile['f'])) ?>">
+                    <div class="row card-body px-3 py-2 align-items-center">
+                        <div class="col-auto" style="width: calc(100% - 500px);"><h5 class="text-nowrap mb-0 py-1 text-truncate"><i class="<?= $vFile['bi_icon'] ?>"></i> <?= FileSystem::convertWin($vFile['encFile']) ?></h5></div>
+                        <div style="width: 180px;"><?= $vFile['modification_date'] ?></div>
+                        <div style="width: 100px;"><small class="text-body-secondary me-auto"><?= $vFile['filesize'] ?></small></div>
+                        <div class="text-end" style="width: 220px;">
+                            <p class="mb-0">
+                                <?php if (App::$session->getPermission('cShare')): ?>
+                                    <button class="btn btn-bd-primary btn-sm" id="btn-share" title="<?= App::t('Share') ?>" data-url="<?= Utils::urlTo('site/share/' . base64_encode($vFile['f'])) ?>"><i class="bi bi-share" aria-hidden="true"></i></button>
+                                <?php endif; ?>
+
+                                <?php if (App::$session->getPermission('cDownload')): ?>
+                                    <button class="btn btn-bd-primary btn-sm" id="btn-download" title="<?= App::t('Download') ?>" data-url="<?= Utils::urlTo('site/download/' . base64_encode($vFile['f'])) ?>"><i class="bi bi-download" aria-hidden="true"></i></button>
+                                <?php endif; ?>
+
+                                <?php if (App::$session->getPermission('cCopy')): ?>
+                                    <button class="btn btn-bd-primary btn-sm" id="btn-copy" title="<?= App::t('Copy') ?>" data-url="<?= Utils::urlTo('site/copy/file/' . base64_encode($p . DIRECTORY_SEPARATOR . $vFile['f']) . '?p=') ?>"><i class="bi bi-copy" aria-hidden="true"></i></button>
+                                <?php endif; ?>
+
+                                <?php if (App::$session->getPermission('cRename')): ?>
+                                    <button class="btn btn-bd-primary btn-sm" id="btn-rename" title="<?= App::t('Rename') ?>" data-url="<?= Utils::urlTo('site/rename/' . base64_encode($vFile['f'])) ?>" data-type="file"><i class="bi bi-input-cursor-text" aria-hidden="true"></i></button>
+                                <?php endif; ?>
+
+                                <?php if (App::$session->getPermission('cDelete')): ?>
+                                    <button class="btn btn-danger btn-sm" id="btn-delete" title="<?= App::t('Delete') ?>" data-card-id="card-file-<?= $kFile ?>" data-url="<?= Utils::urlTo('site/delete/' . base64_encode($vFile['f'])) ?>" data-type="file"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                <?php endif; ?>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,7 +115,7 @@ $time_start = microtime(true);
 
 <script>
 
-    const url = "<?= Utils::urlTo('api/upload?p=' . base64_encode($p)) ?>";
+    const url = "<?= Utils::urlTo('api/upload') ?>";
 
     const dropzone = new Dropzone("div.my-dropzone", {
         url: url,
@@ -209,7 +221,7 @@ $time_start = microtime(true);
         $("#modal-app-title").empty();
     });
 
-    $(document).on("click", "#btn-download, #btn-compress-zip", function (event) {
+    $(document).on("click", "#btn-download, #btn-compress-zip, #btn-copy", function (event) {
         event.preventDefault();
 
         let link = document.createElement('a');
@@ -229,22 +241,22 @@ $time_start = microtime(true);
 
         switch ($(this).attr('id')) {
             case 'btn-new':
-                title = 'New ' + $(this).data('type');
-                url = $(this).data('url') + '&t=' + $(this).data('type');
+                title = $(this).data('type') === 'file' ? '<i class="bi bi-file-earmark-plus"></i> New file' : '<i class="bi bi-folder-plus"></i> New folder';
+                url = $(this).data('url');
                 break;
 
             case 'btn-rename':
-                title = 'Rename ' + $(this).data('type');
-                url = $(this).data('url') + '&t=' + $(this).data('type');
+                title = '<i class="bi bi-input-cursor-text"></i> Rename ' + $(this).data('type');
+                url = $(this).data('url');
                 break;
 
             case 'btn-delete':
-                title = 'Delete ' + $(this).data('type') + '?';
-                url = $(this).data('url') + '&t=' + $(this).data('type') + '&cardId=' + $(this).data('card-id');
+                title = '<i class="bi bi-trash"></i> Delete ' + $(this).data('type') + '?';
+                url = $(this).data('url') + '?t=' + $(this).data('type') + '&cardId=' + $(this).data('card-id');
                 break;
 
             case 'btn-share':
-                title = 'Share file';
+                title = '<i class="bi bi-share"></i> Share file';
                 url = $(this).data('url');
                 break;
         }
@@ -264,8 +276,7 @@ $time_start = microtime(true);
 
     $(document).on("click", ".card-selection", function (event) {
         event.preventDefault();
-        let url = $(this).data('url');
-        window.location.assign(url);
+        window.location.assign($(this).data('url'));
         return false;
     });
 
@@ -301,7 +312,7 @@ $time_start = microtime(true);
                 /** @var {array} jqXHR.responseJSON.error */
                 /** @var {string} jqXHR.responseJSON.message */
 
-                if (jqXHR.responseJSON.error && jqXHR.responseJSON.error.hasOwnProperty('newName')) {
+                if (jqXHR.responseJSON.error && (jqXHR.responseJSON.error.hasOwnProperty('newName') || jqXHR.responseJSON.error.hasOwnProperty('name'))) {
                     showErrorName(jqXHR.responseJSON, isFormRename);
                 } else {
                     nerror(jqXHR.responseJSON.message);
@@ -337,7 +348,7 @@ $time_start = microtime(true);
                 /** @var {string} data.status */
                 if (data.status === 'success') {
                     $("#modal-app").modal('hide');
-                    $(`.card[data-card-id="${data.data.cardId}"]`).remove();
+                    $(`.col[data-card-id="${data.data.cardId}"]`).remove();
                     nsuccess(data.message);
                 }
             },

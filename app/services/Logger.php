@@ -25,8 +25,13 @@ class Logger
     private function log($level, $message): void
     {
         $timestamp = date('Y-m-d H:i:s');
-        $logMessage = "[$timestamp] [$level] $message" . PHP_EOL;
+        $logMessage = "[$timestamp] PHP $level: $message" . PHP_EOL;
         file_put_contents($this->logFile, $logMessage, FILE_APPEND);
+    }
+
+    public function notice($message): void
+    {
+        $this->log('NOTICE', $message);
     }
 
     public function info($message): void

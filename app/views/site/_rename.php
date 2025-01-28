@@ -1,17 +1,20 @@
 <?php
 
-/** @var string $action */
-/** @var string $oldName */
+/** @var string $file */
 
 use app\core\App;
+use app\utils\Utils;
+
+$oldName = base64_decode($file);
 
 ?>
 
-<form id="form-rename" class="g-3" action="<?= $action ?>" method="post">
+<form id="form-rename" action="<?= Utils::urlTo('site/rename/' . $file) ?>" method="post">
+    <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(App::$session->_csrf()) ?>">
 
     <div class="mb-3">
         <label for="inputNewName" class="form-label"><?= App::t('New name for <code>{oldName}</code>', [$oldName]) ?></label>
-        <input type="text" class="form-control" id="inputNewName" name="newName" required placeholder="<?= $oldName ?>">
+        <input type="text" class="form-control" id="inputNewName" name="newName" required placeholder="<?= $oldName ?>" value="<?= $oldName ?>">
         <div id="invalid-new-name" class="invalid-feedback"></div>
     </div>
 

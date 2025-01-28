@@ -13,6 +13,7 @@ class BaseController
 {
 
     private Renderer $renderer;
+    protected string $layout = 'main';
 
     public function __construct()
     {
@@ -26,10 +27,16 @@ class BaseController
     {
         $methodNameNormalized = $this->normalizeAction($methodName);
 
-        $method = new ReflectionMethod($this, $methodNameNormalized);
-        if ($method->isPublic()) {
-            echo $method->invokeArgs($this, $params);
-            return true;
+        if (method_exists($this, $methodNameNormalized)) {
+            $method = new ReflectionMethod($this, $methodNameNormalized);
+            if ($method->isPublic()) {
+                session_start();
+
+                App::$session->checkAndUpdatePermissions();
+
+                echo $method->invokeArgs($this, $params);
+                return true;
+            }
         }
 
         return false;
@@ -38,25 +45,46 @@ class BaseController
     /**
      * @throws Exception
      */
+    protected function ensureAuthenticated(bool $throwError = false): void
+    {
+        if (App::$session->isGuest()) {
+            if ($throwError) {
+                throw new Exception(App::t('You are not allowed to access this page.'));
+            }
+            $currentUrl = trim($_SERVER['PATH_INFO'] ?? '', '/');
+
+            if ($currentUrl === 'site/index') {
+                $this->redirect('auth/login');
+            }
+
+            $this->redirect('auth/login?redirect=' . urlencode($currentUrl));
+        }
+    }
+
+    public function validateCsrf(string $redirect = 'site/index'): void
+    {
+        $data = $this->getPostData();
+
+        $csrfToken = $data['_csrf_token'] ?? '';
+
+        if (!App::$session->checkCSRF($csrfToken)) {
+            App::$session->notify('g-danger', App::t('Invalid CSRF token.'));
+            $this->redirect($redirect);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
     protected function renderPartial(string $view, array $params = []): string
     {
-        extract($params);
-
-        if (isset($params["statusCode"])) {
-            http_response_code($params["statusCode"]);
-        }
-
-        ob_start();
-
         $reflection = new ReflectionClass($this);
         $controllerName = $reflection->getShortName();
         $controllerName = strtolower(str_replace('Controller', '', $controllerName));
 
-        include VIEWS . "$controllerName/$view.php";
+        $params['controllerName'] = $controllerName;
 
-        $output = ob_get_clean();
-
-        return $output !== false ? $output : throw new Exception(App::t('Internal error on the server. Contact the administrator.'), 500);
+        return $this->renderer->renderPartial($view, $params);
     }
 
     /**
@@ -70,13 +98,13 @@ class BaseController
 
         $params['controllerName'] = $controllerName;
 
-        return $this->renderer->render($view, $params);
+        return $this->renderer->render($view, $params, $this->layout);
     }
 
     /**
      * @throws Exception
      */
-    protected function asJson(array $params = []): false|string
+    protected function asJson(array $params = []): string
     {
         if (isset($params["statusCode"])) {
             http_response_code($params["statusCode"]);
@@ -118,7 +146,12 @@ class BaseController
         return is_array($data) ? $data : null;
     }
 
-    #[NoReturn] public static function redirect(string $url, int $code = 302): string
+    protected function getPostData(): array
+    {
+        return $this->getJsonInput() ?? $_POST;
+    }
+
+    #[NoReturn] public static function redirect(string $url, int $code = 302): void
     {
         header("Location: " . Utils::urlTo($url), true, $code);
         exit();

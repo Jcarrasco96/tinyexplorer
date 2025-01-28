@@ -9,6 +9,7 @@
 
 use app\helpers\Breadcrumb;
 use app\services\FileSystem;
+use app\utils\Crypto;
 use app\utils\Utils;
 
 ?>
@@ -17,11 +18,7 @@ use app\utils\Utils;
 
     <div class="d-flex align-items-center mb-2">
         <?php if ($p !== false): ?>
-            <nav aria-label="breadcrumb" class="me-2">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="<?= Utils::urlTo('site/index?p=' .  urlencode($p)) ?>"><i class="bi bi-chevron-left"></i></a></li>
-                </ol>
-            </nav>
+            <a class="btn btn-bd-primary me-2" href="<?= Utils::urlTo('site/index/' .  base64_encode($p)) ?>"><i class="bi bi-chevron-left"></i></a>
 
             <?= Breadcrumb::run(['path' => $p . '/' . $file]) ?>
         <?php else: ?>
@@ -56,13 +53,26 @@ use app\utils\Utils;
                         <code><?= $filename['name'] ?> (<?= FileSystem::filesize($filename['compressed_size']) ?>)</code><br>
                     <?php endforeach; ?>
                 <?php endif; ?>
+            <?php else: ?>
+
+                <iframe src="<?= Utils::urlTo('site/share/' . base64_encode($file)) ?>" width="100%" height="370"></iframe>
+
+                <?php
+                Crypto::init('294443b5bb7221b16a4c8cf47df19af0');
+
+                $msgEnc = Crypto::encrypt(base64_encode($file));
+                $msgDec = Crypto::decrypt($msgEnc['data'], $msgEnc['iv']);
+                ?>
+
+                <p>Download file: <?= Utils::urlTo('api/raw?f=' . $msgEnc['data'] . '&i=' . $msgEnc['iv']) ?></p>
+
             <?php endif; ?>
         </div>
         <div class="col-lg-3">
             <div class="row row-cols-1 g-1">
                 <?php foreach ($arrFiles as $kFile => $vFile): ?>
                     <div class="col">
-                        <div class="card card-selection" data-url="<?= Utils::urlTo('site/view?p=' . $vFile['link']) ?>">
+                        <div class="card <?= $file == $vFile['f'] ? 'card-disabled' : 'card-selection' ?>" data-url="<?= Utils::urlTo('site/view/' . base64_encode($vFile['f'])) ?>">
                             <div class="card-body p-2">
                                 <h5 class="mb-0"><i class="<?= $vFile['bi_icon'] ?>"></i> <?= FileSystem::convertWin($vFile['encFile']) ?></h5>
                                 <small class="text-body-secondary me-auto"><?= $vFile['filesize'] ?></small>
@@ -76,12 +86,8 @@ use app\utils\Utils;
 
 </div>
 
-
 <style>
     .preview-video {
-        /*background-color: #0d6efd;*/
-        /*width: 100%;*/
-        /*max-width: 100%;*/
         overflow: hidden;
         text-align: center;
     }
@@ -91,7 +97,6 @@ use app\utils\Utils;
         width: auto;
         height: auto;
         object-fit: cover;
-        /*display: block;*/
     }
     .preview-video img {
         width: 100%;
@@ -104,11 +109,7 @@ use app\utils\Utils;
 <script>
     $(document).on("click", ".card-selection", function (event) {
         event.preventDefault();
-
-        let url = $(this).data('url');
-
-        window.location.assign(url);
-
+        window.location.assign($(this).data('url'));
         return false;
     });
 </script>

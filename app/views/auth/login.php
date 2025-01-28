@@ -1,6 +1,7 @@
 <?php
 
 use app\core\App;
+use app\helpers\Html;
 use app\utils\Utils;
 
 /** @var $data array|null */
@@ -24,7 +25,9 @@ use app\utils\Utils;
                     <div class="card-body">
 
                         <div class="text-center">
-                            <h1 class="display-4"><i class="bi bi-folder2-open"></i> Tiny<strong>Explorer</strong></h1>
+                            <img src="<?= Html::img('folder_64.png') ?>" alt="Logo"/>
+
+                            <h1 class="display-4">Tiny<strong>Explorer</strong></h1>
 
                             <h5 class="card-title fs-4"><?= App::t('Login to your account') ?></h5>
                             <p class="small"><?= App::t('Enter your username and password to login') ?></p>
@@ -51,7 +54,7 @@ use app\utils\Utils;
                             </div>
 
                             <div class="col-12">
-                                <button class="btn btn-bd-primary btn-lg w-100" type="submit"><?= App::t('Login') ?></button>
+                                <button class="btn btn-bd-primary btn-lg w-100" type="submit"><i class="bi bi-box-arrow-in-right"></i> <?= App::t('Login') ?></button>
                             </div>
 
                             <div class="col-12 d-none">
@@ -65,7 +68,6 @@ use app\utils\Utils;
             </div>
         </div>
     </div>
-
 </section>
 
 <script>

@@ -58,7 +58,7 @@ class Security
     /**
      * @throws Exception
      */
-    public static function validatePassword(int $password, string $hash): bool
+    public static function validatePassword(string $password, string $hash): bool
     {
         if (!preg_match('/^\$2[axy]\$(\d\d)\$[\.\/0-9A-Za-z]{22}/', $hash, $matches) || $matches[1] < 4 || $matches[1] > 30) {
             throw new Exception(App::t('Hash is invalid.'));

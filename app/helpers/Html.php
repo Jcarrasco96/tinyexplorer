@@ -2,40 +2,34 @@
 
 namespace app\helpers;
 
-use app\core\App;
+use app\utils\Utils;
 
 class Html
 {
 
     public static function css($css): string
     {
-        $cssPath = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/assets/css/' . $css;
-
-        return '<link href="' . $cssPath . '" rel="stylesheet">' . "\n";
+        return '<link href="' . Utils::urlTo('assets/css/' . $css) . '" rel="stylesheet">' . "\n";
     }
 
     public static function js($js): string
     {
-        $jsPath = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/assets/js/' . $js;
-
-        return '<script src="' . $jsPath . '"></script>' . "\n";
+        return '<script src="' . Utils::urlTo('assets/js/' . $js) . '"></script>' . "\n";
     }
 
     public static function icon($icon, $rel = 'icon'): string
     {
-        $iconPath = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/assets/' . $icon;
-
-        return '<link href="' . $iconPath . '" rel="' . $rel . '">' . "\n";
+        return '<link href="' . Utils::urlTo('assets/' . $icon) . '" rel="' . $rel . '">' . "\n";
     }
 
     public static function img($img): string
     {
-        return $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/assets/img/' . $img;
+        return Utils::urlTo('assets/img/' . $img);
     }
 
     public static function uploadImg($img): string
     {
-        return $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . App::$config['folder_name'] . '/uploads/' . $img;
+        return Utils::urlTo('uploads/' . $img);
     }
 
 }

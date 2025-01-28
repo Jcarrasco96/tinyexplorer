@@ -2,6 +2,7 @@
 
 namespace app\helpers;
 
+use app\core\App;
 use app\services\FileSystem;
 use app\utils\Utils;
 
@@ -10,10 +11,6 @@ class Breadcrumb
 
     public static function run(array $config): string
     {
-//        if (empty($config['path'])) {
-//            return '';
-//        }
-
         $exploded = explode('/', $config['path']);
         $breadcrumbElements = [];
         $parent = '';
@@ -30,7 +27,7 @@ class Breadcrumb
                 continue;
             }
 
-            $breadcrumbElements[] = "<li class='breadcrumb-item'><a href='" . Utils::urlTo("site/index?p=" . base64_encode($parent)) . "'>" . Utils::enc(FileSystem::convertWin($value)) . "</a></li>";
+            $breadcrumbElements[] = "<li class='breadcrumb-item'><a href='" . Utils::urlTo("site/index/" . base64_encode($parent)) . "'>" . Utils::enc(FileSystem::convertWin($value)) . "</a></li>";
         }
 
         if ($last) {

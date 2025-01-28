@@ -11,27 +11,23 @@ use JetBrains\PhpStorm\NoReturn;
 class AuthController extends BaseController
 {
 
+    public string $layout = 'guest';
+
     /**
      * @throws Exception
      */
     public function actionLogin(): string
     {
-        session_start();
-
         if (App::$session->isLoggedIn()) {
-            return $this->redirect('site/index');
+            $this->redirect('site/index');
         }
 
         $error = [];
 
         if ($this->isPost()) {
-            $data = $this->getJsonInput() ?? $_POST;
+            $data = $this->getPostData();
 
-            $csrfToken = $data['_csrf_token'] ?? '';
-
-            if (!App::$session->checkCSRF($csrfToken)) {
-                throw new Exception(App::t('Invalid CSRF token.'));
-            }
+            $this->validateCsrf('site/login');
 
             if (empty($data["email"])) {
                 $error['email'] = App::t('Email is required.');
@@ -50,11 +46,18 @@ class AuthController extends BaseController
                 ]);
             }
 
-            $id = User::findUserByCredentials($data['email'], $data['password']);
+            $user = User::findUserByCredentials($data['email'], $data['password']);
 
-            if (!empty($id)) {
-                App::$session->create($id, $data["email"]);
-                return $this->redirect('site/index');
+            if (!empty($user)) {
+                App::$session->create($user['id'], $user["username"], json_decode($user["info"], true));
+
+                $redirectUrl = $_GET['redirect'] ?? 'site/index';
+
+                if (str_contains($redirectUrl, '//')) {
+                    $redirectUrl = 'site/index';
+                }
+
+                $this->redirect($redirectUrl);
             }
 
             $error['password'] = App::t('Email or password is incorrect.');
@@ -80,16 +83,14 @@ class AuthController extends BaseController
      */
     public function actionRegister(): string
     {
-        session_start();
-
         if (App::$session->isLoggedIn()) {
-            return $this->redirect('site/index');
+            $this->redirect('site/index');
         }
 
         $error = [];
 
         if ($this->isPost()) {
-            $data = $this->getJsonInput() ?? $_POST;
+            $data = $this->getPostData();
 
             if (empty($data["email"])) {
                 $error['email'] = App::t('Email is required.');
@@ -121,7 +122,7 @@ class AuthController extends BaseController
             if (!empty($id)) {
                 App::$session->create($id, $data["email"]);
 
-                return $this->redirect('site/index');
+                $this->redirect('site/index');
             } else {
                 $error['password'] = App::t('Email or password is incorrect.');
             }
@@ -139,9 +140,8 @@ class AuthController extends BaseController
 
     #[NoReturn] public function actionLogout(): string
     {
-        session_start();
         App::$session->destroy();
-        return $this->redirect('auth/login');
+        $this->redirect('auth/login');
     }
 
 }

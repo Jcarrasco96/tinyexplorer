@@ -1,18 +1,16 @@
 <?php
 
-/** @var string $action */
 /** @var string $type */
-/** @var string $p */
 /** @var string $f */
 /** @var string $cardId */
 
 use app\core\App;
+use app\utils\Utils;
 
 ?>
 
-<form id="form-delete" class="g-3" action="<?= $action ?>" method="post">
-
-    <input type="hidden" name="p" value="<?= base64_encode($p) ?>">
+<form id="form-delete" action="<?= Utils::urlTo('api/delete') ?>" method="post">
+    <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(App::$session->_csrf()) ?>">
     <input type="hidden" name="f" value="<?= base64_encode($f) ?>">
     <input type="hidden" name="cardId" value="<?= $cardId ?>">
 
