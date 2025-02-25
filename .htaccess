@@ -18,3 +18,7 @@ RewriteRule ^(.+)$ index.php/$1 [L]
 
 php_flag zlib.output_compression On
 php_value zlib.output_compression_level 9
+
+<Files database.sqlite>
+    Require all denied
+</Files>

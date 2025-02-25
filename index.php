@@ -1,5 +1,7 @@
 <?php
 
+use TE\core\App;
+
 require_once 'vendor/autoload.php';
 
 date_default_timezone_set('America/Havana');
@@ -9,11 +11,11 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('error_log', 'log/error_' . date('Ymd') . '.log');
 
-set_exception_handler(['app\core\ExceptionHandler', 'handleException']);
+set_exception_handler(['TE\core\ExceptionHandler', 'handleException']);
 
-$config = require_once 'app/config.php';
+$config = require_once 'config/web.php';
 
-$app = new app\core\App($config);
+$app = new App($config);
 
 // auth get
 $app->get('/^auth\/login$/', 'login');
@@ -62,5 +64,8 @@ $app->post('/^admin\/users\/new$/', 'newUser');
 $app->post('/^admin\/users\/([0-9]+)\/delete$/', 'delete');
 $app->post('/^admin\/users\/([0-9]+)\/c([A-Za-z]+)$/', 'changeAttribute');
 $app->post('/^admin\/users\/([0-9]+)\/change-password$/', 'changePassword');
+
+//$app->get('/^api\/list$/', 'list');
+//$app->get("/^api\/list\/$base64Regex$/", 'list');
 
 $app->run();
